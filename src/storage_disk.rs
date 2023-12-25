@@ -35,20 +35,20 @@ impl<ITEM: StorageItem> StorageDisk<ITEM> {
 }
 
 #[async_trait]
-impl<ITEM: StorageItem> Storage<ITEM> for StorageDisk<ITEM> {
+impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDisk<ITEM> {
     async fn create(&self) -> Result<String> {
-    	let mut tries = 10;
-    	loop {
-	        let id = nanoid::nanoid!();
-	        if ! self.exists( &id ).await? {
-		        return Ok(id);
-	        }
+        let mut tries = 10;
+        loop {
+            let id = nanoid::nanoid!();
+            if !self.exists(&id).await? {
+                return Ok(id);
+            }
 
-    		tries -= 1;
-    		if tries <= 0 {
-    			todo!();
-    		}
-    	}
+            tries -= 1;
+            if tries <= 0 {
+                todo!();
+            }
+        }
     }
     async fn exists(&self, id: &str) -> Result<bool> {
         let p = self.file_path(id);
