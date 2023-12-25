@@ -1,3 +1,6 @@
+// use tracing::Level;
+// use tracing::span;
+use oml_storage::LockResult;
 use std::env;
 use std::path::Path;
 use std::sync::Arc;
@@ -10,11 +13,31 @@ use oml_storage::StorageItem;
 use serde::Deserialize;
 use serde::Serialize;
 
-async fn test(storage: Arc<Box<dyn Storage<TestItem>>>, id: String) -> Result<bool> {
+enum TestResult {
+    Success,
+    Failure,
+    AlreadyLocked,
+}
+
+async fn test(storage: Arc<Box<dyn Storage<TestItem>>>, id: String) -> Result<TestResult> {
+    let us = nanoid::nanoid!();
+    // let test_span = span!(Level::DEBUG, "test", us = us);
+    // let _ = test_span.enter();
+
     if storage.exists(&id).await? {
         tracing::debug!("Item {} exists", id);
-        let mut item = storage.load(&id).await?;
-        tracing::debug!("Load {item:?}");
+        let (lock, mut item) = match storage.lock(&id, &us).await? {
+            LockResult::Success { lock, item } => (lock, item),
+            LockResult::AlreadyLocked { .. } => {
+                return Ok(TestResult::AlreadyLocked);
+            }
+        };
+
+        //let (lock, mut item) = storage.lock(&id, &us).await?;
+        tracing::debug!("Lock {lock:?} -> {item:?}");
+
+        //let mut item = storage.load(&id).await?;
+        //tracing::debug!("Load {item:?}");
         item.increment_counter();
         let data = nanoid::nanoid!();
         item.set_data(&data);
@@ -22,21 +45,23 @@ async fn test(storage: Arc<Box<dyn Storage<TestItem>>>, id: String) -> Result<bo
         storage.save(&id, &item).await?;
 
         // wait
-        tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
+        tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
 
         let item2 = storage.load(&id).await?;
-        tracing::debug!("Load {item2:?}");
+        tracing::debug!("Load2 {item2:?}");
+        storage.unlock(&id, lock).await?;
+        tracing::debug!("Unlocked");
         if item2.data() == data {
-            return Ok(true);
+            return Ok(TestResult::Success);
         } else {
-            return Ok(false);
+            return Ok(TestResult::Failure);
         }
     } else {
         tracing::debug!("Item {} doesn't exists", id);
         let item = TestItem::default();
         storage.save(&id, &item).await?;
     }
-    Ok(true)
+    Ok(TestResult::Success)
 }
 
 #[tokio::main]
@@ -60,32 +85,42 @@ async fn main() -> Result<()> {
     let storage: Box<dyn Storage<TestItem>> = Box::new(storage);
     let storage = Arc::new(storage);
 
+    /*
     let id = storage.create().await?;
     test(storage.clone(), id.clone()).await?;
+    */
 
     let id = String::from("1");
     let mut failed = 0;
     let mut succeeded = 0;
+    let mut already_locked = 0;
     let mut tasks = Vec::new();
 
-    for _i in 0..10 {
+    const COUNT: u8 = 100;
+
+    for _i in 0..COUNT {
+        tokio::time::sleep(tokio::time::Duration::from_millis(20)).await;
         let s = storage.clone();
         let i = id.clone();
-        let task = tokio::spawn({ test(s, i) });
+        let task = tokio::spawn(test(s, i));
         tasks.push(task);
     }
 
     for task in tasks {
         let f = task.await?;
-        if f? {
-            succeeded += 1;
-        } else {
-            failed += 1;
+        match f? {
+            TestResult::Success => succeeded += 1,
+            TestResult::Failure => failed += 1,
+            TestResult::AlreadyLocked => already_locked += 1,
         }
     }
 
-    tracing::info!("Failed {failed} | {succeeded} Succeeded");
+    tracing::info!("Failed {failed} | {succeeded} Succeeded | {already_locked} Already Locked");
 
+    if already_locked == COUNT {
+        tracing::warn!("Suspecting stale lockfile, force unlocking {id}");
+        storage.force_unlock(&id).await?;
+    }
     // ---
 
     tracing::info!("Demo started");

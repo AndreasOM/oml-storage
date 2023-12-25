@@ -1,7 +1,12 @@
+use crate::LockResult;
 use crate::Storage;
 use crate::StorageItem;
+use crate::StorageLock;
 use async_trait::async_trait;
+use color_eyre::eyre::eyre;
 use color_eyre::eyre::Result;
+use tokio::sync::Semaphore;
+
 use core::marker::PhantomData;
 use std::fs;
 use std::path::Path;
@@ -12,6 +17,7 @@ pub struct StorageDisk<ITEM: StorageItem> {
     base_path: PathBuf,
     extension: PathBuf,
     item_type: PhantomData<ITEM>,
+    lock_semaphore: Semaphore,
 }
 
 impl<ITEM: StorageItem> StorageDisk<ITEM> {
@@ -20,6 +26,7 @@ impl<ITEM: StorageItem> StorageDisk<ITEM> {
             base_path: base_path.to_path_buf(),
             extension: extension.to_path_buf(),
             item_type: PhantomData,
+            lock_semaphore: Semaphore::new(1),
         }
     }
 
@@ -29,6 +36,15 @@ impl<ITEM: StorageItem> StorageDisk<ITEM> {
         let idp = Path::new(id);
         p.push(idp);
         p.set_extension(&self.extension);
+
+        p
+    }
+    fn lock_path(&self, id: &str) -> PathBuf {
+        let mut p = PathBuf::new();
+        p.push(&self.base_path);
+        let idp = Path::new(id);
+        p.push(idp);
+        p.set_extension("lock");
 
         p
     }
@@ -68,6 +84,69 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDisk<ITEM> 
         let p = self.file_path(id);
         let b = item.serialize()?;
         fs::write(p, b)?;
+        Ok(())
+    }
+    async fn lock(&self, id: &str, who: &str) -> Result<LockResult<ITEM>> {
+        let l = self.lock_path(id);
+        let (lock, item) = {
+            let sem = self.lock_semaphore.acquire().await?;
+            tracing::debug!("Lock[{who}]: Got Semaphore");
+
+            tracing::debug!("Lock[{who}]: Does {l:?} exist");
+
+            if fs::metadata(&l).is_ok() {
+                tracing::warn!("Lockfile {l:?} already exists");
+                drop(sem);
+                tracing::debug!("Lock[{who}]: Dropped Semaphore"); // close enough
+                                                                   //return Err(eyre!("Already locked"));
+                                                                   // :TODO: load lock
+                return Ok(LockResult::AlreadyLocked {
+                    who: String::from(":TODO:"),
+                });
+            }
+
+            let lock = StorageLock::new(who);
+            let lock_json = serde_json::to_string_pretty(&lock)?;
+
+            tracing::debug!("Lock[{who}]: Write lock to {l:?}");
+            fs::write(l, lock_json)?;
+
+            tracing::debug!("Lock[{who}]: Load {id}");
+            let item = self.load(id).await?;
+
+            drop(sem);
+            tracing::debug!("Lock[{who}]: Dropped Semaphore"); // close enough
+            (lock, item)
+        };
+        Ok(LockResult::Success { lock, item })
+    }
+
+    async fn unlock(&self, id: &str, lock: StorageLock) -> Result<()> {
+        let l = self.lock_path(id);
+        if !fs::metadata(&l).is_ok() {
+            tracing::warn!("Lockfile {l:?} doesn't exists");
+            return Err(eyre!("Not locked"));
+        }
+
+        let expected_lock_json = fs::read(&l)?;
+        let expected_lock: StorageLock = serde_json::from_slice(&expected_lock_json)?;
+
+        if expected_lock != lock {
+            tracing::warn!("Lock mismatch for {id} {lock:?} != {expected_lock:?}");
+            return Err(eyre!("Lock mismatch"));
+        }
+        std::fs::remove_file(l)?;
+        Ok(())
+    }
+
+    async fn force_unlock(&self, id: &str) -> Result<()> {
+        let l = self.lock_path(id);
+        if !fs::metadata(&l).is_ok() {
+            tracing::warn!("Lockfile {l:?} doesn't exists");
+            return Err(eyre!("Not locked"));
+        }
+
+        std::fs::remove_file(l)?;
         Ok(())
     }
 }

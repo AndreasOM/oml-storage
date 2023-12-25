@@ -17,3 +17,8 @@ Cargo.lock
 # Added by cargo
 
 /target
+
+data/test_items/*.test_item
+data/test_items/*.lock
+
+.DS_Store
