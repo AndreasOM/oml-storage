@@ -80,11 +80,15 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDisk<ITEM> 
         Ok(i)
     }
 
-    async fn save(&self, id: &str, item: &ITEM) -> Result<()> {
-        let p = self.file_path(id);
-        let b = item.serialize()?;
-        fs::write(p, b)?;
-        Ok(())
+    async fn save(&self, id: &str, item: &ITEM, lock: &StorageLock) -> Result<()> {
+        if !self.verify_lock(id, lock).await? {
+            Err(eyre!("Lock invalid!"))
+        } else {
+            let p = self.file_path(id);
+            let b = item.serialize()?;
+            fs::write(p, b)?;
+            Ok(())
+        }
     }
     async fn lock(&self, id: &str, who: &str) -> Result<LockResult<ITEM>> {
         let l = self.lock_path(id);
@@ -122,21 +126,13 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDisk<ITEM> 
     }
 
     async fn unlock(&self, id: &str, lock: StorageLock) -> Result<()> {
-        let l = self.lock_path(id);
-        if !fs::metadata(&l).is_ok() {
-            tracing::warn!("Lockfile {l:?} doesn't exists");
-            return Err(eyre!("Not locked"));
+        if !self.verify_lock(id, &lock).await? {
+            Err(eyre!("Lock invalid!"))
+        } else {
+            let l = self.lock_path(id);
+            std::fs::remove_file(l)?;
+            Ok(())
         }
-
-        let expected_lock_json = fs::read(&l)?;
-        let expected_lock: StorageLock = serde_json::from_slice(&expected_lock_json)?;
-
-        if expected_lock != lock {
-            tracing::warn!("Lock mismatch for {id} {lock:?} != {expected_lock:?}");
-            return Err(eyre!("Lock mismatch"));
-        }
-        std::fs::remove_file(l)?;
-        Ok(())
     }
 
     async fn force_unlock(&self, id: &str) -> Result<()> {
@@ -148,5 +144,21 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDisk<ITEM> 
 
         std::fs::remove_file(l)?;
         Ok(())
+    }
+    async fn verify_lock(&self, id: &str, lock: &StorageLock) -> Result<bool> {
+        let l = self.lock_path(id);
+        if !fs::metadata(&l).is_ok() {
+            tracing::warn!("Lockfile {l:?} doesn't exists");
+            return Ok(false);
+        }
+
+        let expected_lock_json = fs::read(&l)?;
+        let expected_lock: StorageLock = serde_json::from_slice(&expected_lock_json)?;
+
+        if expected_lock != *lock {
+            tracing::warn!("Lock mismatch for {id} {lock:?} != {expected_lock:?}");
+            return Ok(false);
+        }
+        Ok(true)
     }
 }

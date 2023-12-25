@@ -11,12 +11,13 @@ pub trait Storage<ITEM: StorageItem + Sized>: Send + Sync {
     async fn create(&self) -> Result<String>;
     async fn exists(&self, id: &str) -> Result<bool>;
     async fn load(&self, id: &str) -> Result<ITEM>;
-    async fn save(&self, id: &str, item: &ITEM) -> Result<()>;
+    async fn save(&self, id: &str, item: &ITEM, lock: &StorageLock) -> Result<()>;
 
     async fn lock(&self, id: &str, who: &str) -> Result<LockResult<ITEM>>;
     async fn unlock(&self, id: &str, lock: StorageLock) -> Result<()>;
 
     async fn force_unlock(&self, id: &str) -> Result<()>;
+    async fn verify_lock(&self, id: &str, lock: &StorageLock) -> Result<bool>;
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]

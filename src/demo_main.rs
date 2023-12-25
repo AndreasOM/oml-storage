@@ -1,6 +1,7 @@
 // use tracing::Level;
 // use tracing::span;
 use oml_storage::LockResult;
+use oml_storage::StorageLock;
 use std::env;
 use std::path::Path;
 use std::sync::Arc;
@@ -41,8 +42,21 @@ async fn test(storage: Arc<Box<dyn Storage<TestItem>>>, id: String) -> Result<Te
         item.increment_counter();
         let data = nanoid::nanoid!();
         item.set_data(&data);
+        tracing::debug!("Verify lock {lock:?}");
+        if !storage.verify_lock(&id, &lock).await? {
+            tracing::warn!("Lock invalid!");
+        }
+
+        let broken_lock = StorageLock::new("broken");
+
+        if !storage.verify_lock(&id, &broken_lock).await? {
+            tracing::warn!("Broken Lock invalid!");
+        }
+        tracing::debug!("Save {item:?} with broken lock");
+        let _ = storage.save(&id, &item, &broken_lock).await; // ?; /// !!!
+
         tracing::debug!("Save {item:?}");
-        storage.save(&id, &item).await?;
+        storage.save(&id, &item, &lock).await?;
 
         // wait
         tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
@@ -58,8 +72,14 @@ async fn test(storage: Arc<Box<dyn Storage<TestItem>>>, id: String) -> Result<Te
         }
     } else {
         tracing::debug!("Item {} doesn't exists", id);
+        let (lock, _item) = match storage.lock(&id, &us).await? {
+            LockResult::Success { lock, item } => (lock, item),
+            LockResult::AlreadyLocked { .. } => {
+                return Ok(TestResult::AlreadyLocked);
+            }
+        };
         let item = TestItem::default();
-        storage.save(&id, &item).await?;
+        storage.save(&id, &item, &lock).await?;
     }
     Ok(TestResult::Success)
 }

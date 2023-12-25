@@ -1,14 +1,17 @@
 # TODO
 
 ## InProgress
-- [ ] Implement disk backed storage
+
+- [ ] Implement dynamodb backed storage
 
 ## ToDo
-- [ ] Check if base path exists
-- [ ] save requires lock
-	- [ ] verify_lock
+- [ ] #disk_storage Check if base path exists
+- [ ] #disk_storage Improve error handling
 
 ## Done
+- [x] Implement disk backed storage
+- [x] save requires lock
+- [x] verify_lock
 - [x] Stub out basic interface
 	- [x] create
 	- [x] exist
