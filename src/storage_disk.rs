@@ -74,7 +74,7 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDisk<ITEM> 
 
     async fn load(&self, id: &str) -> Result<ITEM> {
         let p = self.file_path(id);
-        let b = fs::read(p)?;
+        let b = fs::read(p.clone()).map_err(|e| eyre!("{e} -> {p:?}"))?;
         let i = ITEM::deserialize(&b)?;
 
         Ok(i)
@@ -116,7 +116,7 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDisk<ITEM> 
             fs::write(l, lock_json)?;
 
             tracing::debug!("Lock[{who}]: Load {id}");
-            let item = self.load(id).await?;
+            let item = self.load(id).await.unwrap_or_default();
 
             drop(sem);
             tracing::debug!("Lock[{who}]: Dropped Semaphore"); // close enough
