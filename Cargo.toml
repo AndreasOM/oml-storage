@@ -5,7 +5,7 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 license = "MIT"
-description = "A very basic commandline tool to download AWS EC2/EBS snapshots."
+description = "A very simple wrapper to handle locked storage of items."
 readme = "README.md"
 homepage = "https://github.com/AndreasOM/oml-storage"
 repository = "https://github.com/AndreasOM/oml-storage"
