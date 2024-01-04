@@ -7,8 +7,10 @@
 ## ToDo
 - [ ] #disk_storage Check if base path exists
 - [ ] #disk_storage Improve error handling
+- [ ] Add feature flags to enable storage backends
 
 ## Done
+- [x] Add simple command line parameters to run demo on different backends
 - [x] Implement null storage
 
 ## Released

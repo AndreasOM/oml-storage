@@ -1,5 +1,7 @@
 // use tracing::Level;
 // use tracing::span;
+use clap::Parser;
+use clap::Subcommand;
 use oml_storage::LockResult;
 use oml_storage::StorageLock;
 use std::env;
@@ -15,6 +17,21 @@ use oml_storage::StorageNull;
 
 use serde::Deserialize;
 use serde::Serialize;
+
+#[derive(Parser)]
+#[command(author, version, about, long_about = None)]
+#[command(propagate_version = true)]
+struct Cli {
+    #[command(subcommand)]
+    command: Commands,
+}
+
+#[derive(Subcommand)]
+enum Commands {
+    Null,
+    Disk,
+    DynamoDb,
+}
 
 enum TestResult {
     Success,
@@ -94,32 +111,36 @@ async fn main() -> Result<()> {
 
     tracing::info!("Demo started");
 
-    // ---
+    let cli = Cli::parse();
 
-    let extension = Path::new("test_item");
+    let storage: Box<dyn Storage<TestItem>> = match &cli.command {
+        Commands::Null => {
+            let mut storage = StorageNull::default();
+            storage.enable_warnings_on_use();
+            Box::new(storage)
+        }
+        Commands::Disk => {
+            let extension = Path::new("test_item");
+            let mut path = env::current_dir()?;
+            path.push("data");
+            path.push("test_items");
+            tracing::debug!("Path {path:?} .{extension:?}");
 
-    /*
-    let mut path = env::current_dir()?;
-    path.push("data");
-    path.push("test_items");
-    tracing::debug!("Path {path:?} .{extension:?}");
-    */
+            let storage = StorageDisk::<TestItem>::new(&path, &extension).await;
+            Box::new(storage)
+        }
+        Commands::DynamoDb => {
+            let table_name = "test_items";
+            let mut storage = StorageDynamoDb::<TestItem>::new(&table_name).await;
+            storage.set_endpoint_url("http://localhost:8000")?;
+            storage.ensure_table_exists().await?;
 
-    // let storage = StorageDisk::<TestItem>::new(&path, &extension).await;
+            return Ok(());
 
-    /*
-    let table_name = "test_items";
-    let mut storage = StorageDynamoDb::<TestItem>::new(&table_name).await;
-    storage.set_endpoint_url("http://localhost:8000")?;
-    storage.ensure_table_exists().await?;
+            // Box::new(storage)
+        }
+    };
 
-    return Ok(());
-    */
-
-    let mut storage = StorageNull::default();
-    storage.enable_warnings_on_use();
-
-    let storage: Box<dyn Storage<TestItem>> = Box::new(storage);
     let storage = Arc::new(storage);
 
     /*
