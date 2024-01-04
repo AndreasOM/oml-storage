@@ -3,6 +3,8 @@
 ## InProgress
 
 - [ ] Implement dynamodb backed storage
+	- [ ] #dynamodb_storage Implement exists
+	- [ ] #dynamodb_storage Check existing lock when locking
 
 ## ToDo
 - [ ] #disk_storage Check if base path exists

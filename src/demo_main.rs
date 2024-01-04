@@ -97,7 +97,8 @@ async fn test(storage: Arc<Box<dyn Storage<TestItem>>>, id: String) -> Result<Te
                 return Ok(TestResult::AlreadyLocked);
             }
         };
-        let item = TestItem::default();
+        let mut item = TestItem::default();
+        item.set_data("Didn't exist");
         storage.save(&id, &item, &lock).await?;
     }
     Ok(TestResult::Success)
@@ -135,9 +136,7 @@ async fn main() -> Result<()> {
             storage.set_endpoint_url("http://localhost:8000")?;
             storage.ensure_table_exists().await?;
 
-            return Ok(());
-
-            // Box::new(storage)
+            Box::new(storage)
         }
     };
 
