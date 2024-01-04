@@ -9,6 +9,11 @@
 - [ ] #disk_storage Improve error handling
 
 ## Done
+- [x] Implement null storage
+
+## Released
+
+### v0.1.2-alpha - 2024-01-03
 - [x] Implement disk backed storage
 - [x] save requires lock
 - [x] verify_lock
@@ -22,5 +27,3 @@
 	- [x] load
 	- [x] save (!)
 - [x] Set up basic project
-
-## Released

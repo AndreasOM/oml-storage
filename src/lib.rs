@@ -10,3 +10,5 @@ mod storage_disk;
 pub use storage_disk::StorageDisk;
 mod storage_dynamodb;
 pub use storage_dynamodb::StorageDynamoDb;
+mod storage_null;
+pub use storage_null::StorageNull;

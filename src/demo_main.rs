@@ -11,6 +11,7 @@ use oml_storage::Storage;
 use oml_storage::StorageDisk;
 use oml_storage::StorageDynamoDb;
 use oml_storage::StorageItem;
+use oml_storage::StorageNull;
 
 use serde::Deserialize;
 use serde::Serialize;
@@ -106,12 +107,18 @@ async fn main() -> Result<()> {
 
     // let storage = StorageDisk::<TestItem>::new(&path, &extension).await;
 
+    /*
     let table_name = "test_items";
     let mut storage = StorageDynamoDb::<TestItem>::new(&table_name).await;
     storage.set_endpoint_url("http://localhost:8000")?;
     storage.ensure_table_exists().await?;
 
     return Ok(());
+    */
+
+    let mut storage = StorageNull::default();
+    storage.enable_warnings_on_use();
+
     let storage: Box<dyn Storage<TestItem>> = Box::new(storage);
     let storage = Arc::new(storage);
 
