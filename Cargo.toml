@@ -22,7 +22,7 @@ name="oml-storage-demo"
 path="src/demo_main.rs"
 
 [dependencies]
-async-trait = "0.1.75"
+async-trait = "0.1.77"
 aws-config = "1.1.1"
 aws-sdk-dynamodb = "1.9.0"
 chrono = { version = "0.4.31", features = ["serde"] }
