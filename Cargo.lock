@@ -1077,7 +1077,7 @@ dependencies = [
 
 [[package]]
 name = "oml-storage"
-version = "0.1.3-alpha"
+version = "0.1.4-dev"
 dependencies = [
  "async-trait",
  "aws-config",
