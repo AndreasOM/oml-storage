@@ -23,3 +23,5 @@ data/test_items/*.lock
 
 .DS_Store
 
+dynamodb/
+
