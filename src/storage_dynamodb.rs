@@ -15,7 +15,6 @@ use aws_sdk_dynamodb::types::ReturnValue;
 use aws_sdk_dynamodb::types::ScalarAttributeType;
 use color_eyre::eyre::eyre;
 use color_eyre::eyre::Result;
-use tokio::sync::Semaphore;
 
 use core::marker::PhantomData;
 
@@ -24,7 +23,6 @@ pub struct StorageDynamoDb<ITEM: StorageItem> {
     table_name: String,
     endpoint_url: Option<String>,
     item_type: PhantomData<ITEM>,
-    lock_semaphore: Semaphore,
 }
 
 impl<ITEM: StorageItem> StorageDynamoDb<ITEM> {
@@ -33,7 +31,6 @@ impl<ITEM: StorageItem> StorageDynamoDb<ITEM> {
             table_name: String::from(table_name),
             endpoint_url: None,
             item_type: PhantomData,
-            lock_semaphore: Semaphore::new(1),
         }
     }
 
