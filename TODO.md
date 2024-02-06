@@ -12,6 +12,8 @@
 - [ ] Add feature flags to enable storage backends
 
 ## Done
+- [x] Cleanup unused semaphore from DynamoDB backend
+
 - [x] Add simple command line parameters to run demo on different backends
 - [x] Implement null storage
 
