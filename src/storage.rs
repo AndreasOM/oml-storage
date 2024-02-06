@@ -7,7 +7,7 @@ use serde::Deserialize;
 use serde::Serialize;
 
 #[async_trait]
-pub trait Storage<ITEM: StorageItem + Sized>: Send + Sync {
+pub trait Storage<ITEM: StorageItem + Sized>: Send + Sync + std::fmt::Debug {
     async fn create(&self) -> Result<String>;
     async fn exists(&self, id: &str) -> Result<bool>;
     async fn load(&self, id: &str) -> Result<ITEM>;

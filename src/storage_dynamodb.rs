@@ -271,3 +271,37 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDynamoDb<IT
         todo!();
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::Storage;
+    use crate::StorageDynamoDb;
+    use crate::StorageItem;
+    use color_eyre::Result;
+    use serde::Deserialize;
+    use serde::Serialize;
+
+    #[derive(Default, Debug, Serialize, Deserialize)]
+    struct TestItem {}
+
+    impl StorageItem for TestItem {
+        fn serialize(&self) -> Result<Vec<u8>> {
+            todo!()
+        }
+        fn deserialize(_: &[u8]) -> Result<Self> {
+            todo!()
+        }
+    }
+
+    #[tokio::test]
+    async fn it_debugs() -> Result<()> {
+        let table_name = "test_items";
+        let storage = StorageDynamoDb::<TestItem>::new(&table_name).await;
+        println!("{storage:?}");
+
+        let storage: Box<dyn Storage<TestItem>> = Box::new(storage);
+        println!("{storage:?}");
+
+        Ok(())
+    }
+}

@@ -162,3 +162,43 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDisk<ITEM> 
         Ok(true)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::Storage;
+    use crate::StorageDisk;
+    use crate::StorageItem;
+    use color_eyre::Result;
+    use serde::Deserialize;
+    use serde::Serialize;
+    use std::env;
+    use std::path::Path;
+
+    #[derive(Default, Debug, Serialize, Deserialize)]
+    struct TestItem {}
+
+    impl StorageItem for TestItem {
+        fn serialize(&self) -> Result<Vec<u8>> {
+            todo!()
+        }
+        fn deserialize(_: &[u8]) -> Result<Self> {
+            todo!()
+        }
+    }
+
+    #[tokio::test]
+    async fn it_debugs() -> Result<()> {
+        let mut path = env::current_dir()?;
+        path.push("data");
+        path.push("test_items");
+        let extension = Path::new("test_item");
+
+        let storage = StorageDisk::<TestItem>::new(&path, &extension).await;
+        println!("{storage:?}");
+
+        let storage: Box<dyn Storage<TestItem>> = Box::new(storage);
+        println!("{storage:?}");
+
+        Ok(())
+    }
+}

@@ -97,3 +97,34 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageNull<ITEM> 
         Ok(true)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::Storage;
+    use crate::StorageItem;
+    use crate::StorageNull;
+    use color_eyre::Result;
+    use serde::Deserialize;
+    use serde::Serialize;
+
+    #[derive(Default, Debug, Serialize, Deserialize)]
+    struct TestItem {}
+
+    impl StorageItem for TestItem {
+        fn serialize(&self) -> Result<Vec<u8>> {
+            todo!()
+        }
+        fn deserialize(_: &[u8]) -> Result<Self> {
+            todo!()
+        }
+    }
+
+    #[test]
+    fn it_debugs() {
+        let storage = StorageNull::<TestItem>::default();
+        println!("{storage:?}");
+
+        let storage: Box<dyn Storage<TestItem>> = Box::new(storage);
+        println!("{storage:?}");
+    }
+}
