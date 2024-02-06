@@ -1,3 +1,5 @@
+/// This is a *Null* implementation that does nothing.
+/// It can be used as a default, and can warn when actually being used.
 use crate::LockResult;
 use crate::Storage;
 use crate::StorageItem;

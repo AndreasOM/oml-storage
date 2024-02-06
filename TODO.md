@@ -12,6 +12,7 @@
 - [ ] Add feature flags to enable storage backends
 
 ## Done
+- [x] Start adding some very basic documentation
 - [x] #disk_storage Allow ensuring folder exists
 - [x] #disk_storage Improve error reporting
 
