@@ -114,7 +114,7 @@ async fn main() -> Result<()> {
 
     let cli = Cli::parse();
 
-    let storage: Box<dyn Storage<TestItem>> = match &cli.command {
+    let mut storage: Box<dyn Storage<TestItem>> = match &cli.command {
         Commands::Null => {
             let mut storage = StorageNull::default();
             storage.enable_warnings_on_use();
@@ -134,11 +134,12 @@ async fn main() -> Result<()> {
             let table_name = "test_items";
             let mut storage = StorageDynamoDb::<TestItem>::new(&table_name).await;
             storage.set_endpoint_url("http://localhost:8000")?;
-            storage.ensure_table_exists().await?;
 
             Box::new(storage)
         }
     };
+
+    storage.ensure_storage_exists().await?;
 
     let storage = Arc::new(storage);
 

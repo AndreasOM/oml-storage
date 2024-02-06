@@ -12,10 +12,18 @@
 - [ ] Add feature flags to enable storage backends
 
 ## Done
-- [x] Add simple command line parameters to run demo on different backends
-- [x] Implement null storage
+- [x] Start adding some very basic documentation
+- [x] #disk_storage Allow ensuring folder exists
+- [x] #disk_storage Improve error reporting
+
+- [x] Add test to ensure backend implementations `debug`
+- [x] Cleanup unused semaphore from DynamoDB backend
 
 ## Released
+
+### 0.1.4-alpha - 2024-01-05
+- [x] Add simple command line parameters to run demo on different backends
+- [x] Implement null storage
 
 ### v0.1.2-alpha - 2024-01-03
 - [x] Implement disk backed storage

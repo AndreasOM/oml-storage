@@ -1,3 +1,5 @@
+/// This is a *Null* implementation that does nothing.
+/// It can be used as a default, and can warn when actually being used.
 use crate::LockResult;
 use crate::Storage;
 use crate::StorageItem;
@@ -22,6 +24,9 @@ impl<ITEM: StorageItem> StorageNull<ITEM> {
 
 #[async_trait]
 impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageNull<ITEM> {
+    async fn ensure_storage_exists(&mut self) -> Result<()> {
+        Ok(())
+    }
     async fn create(&self) -> Result<String> {
         if self.warnings_on_use {
             tracing::warn!("StorageNull create used!");
@@ -95,5 +100,36 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageNull<ITEM> 
             tracing::warn!("StorageNull verify_lock used!");
         }
         Ok(true)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::Storage;
+    use crate::StorageItem;
+    use crate::StorageNull;
+    use color_eyre::Result;
+    use serde::Deserialize;
+    use serde::Serialize;
+
+    #[derive(Default, Debug, Serialize, Deserialize)]
+    struct TestItem {}
+
+    impl StorageItem for TestItem {
+        fn serialize(&self) -> Result<Vec<u8>> {
+            todo!()
+        }
+        fn deserialize(_: &[u8]) -> Result<Self> {
+            todo!()
+        }
+    }
+
+    #[test]
+    fn it_debugs() {
+        let storage = StorageNull::<TestItem>::default();
+        println!("{storage:?}");
+
+        let storage: Box<dyn Storage<TestItem>> = Box::new(storage);
+        println!("{storage:?}");
     }
 }

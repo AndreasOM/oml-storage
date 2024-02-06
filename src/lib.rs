@@ -1,3 +1,13 @@
+//#![warn(missing_docs)]
+
+//! A very simple wrapper to handle locked storage of items.
+//!
+//! Provides an abstraction over storage backends.
+//! The core idea is that storage items will be locked in storage and stay hot in memory for a while.
+//!
+//! Note:
+//! The documentation is still work-in-progress.
+
 mod storage;
 pub use storage::LockResult;
 pub use storage::Storage;

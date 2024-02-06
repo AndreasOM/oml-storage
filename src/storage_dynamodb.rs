@@ -15,7 +15,6 @@ use aws_sdk_dynamodb::types::ReturnValue;
 use aws_sdk_dynamodb::types::ScalarAttributeType;
 use color_eyre::eyre::eyre;
 use color_eyre::eyre::Result;
-use tokio::sync::Semaphore;
 
 use core::marker::PhantomData;
 
@@ -24,7 +23,6 @@ pub struct StorageDynamoDb<ITEM: StorageItem> {
     table_name: String,
     endpoint_url: Option<String>,
     item_type: PhantomData<ITEM>,
-    lock_semaphore: Semaphore,
 }
 
 impl<ITEM: StorageItem> StorageDynamoDb<ITEM> {
@@ -33,7 +31,6 @@ impl<ITEM: StorageItem> StorageDynamoDb<ITEM> {
             table_name: String::from(table_name),
             endpoint_url: None,
             item_type: PhantomData,
-            lock_semaphore: Semaphore::new(1),
         }
     }
 
@@ -147,6 +144,9 @@ impl<ITEM: StorageItem> StorageDynamoDb<ITEM> {
 
 #[async_trait]
 impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDynamoDb<ITEM> {
+    async fn ensure_storage_exists(&mut self) -> Result<()> {
+        Ok(())
+    }
     async fn create(&self) -> Result<String> {
         let mut tries = 10;
         loop {
@@ -272,5 +272,39 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDynamoDb<IT
     }
     async fn verify_lock(&self, _id: &str, _lock: &StorageLock) -> Result<bool> {
         todo!();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::Storage;
+    use crate::StorageDynamoDb;
+    use crate::StorageItem;
+    use color_eyre::Result;
+    use serde::Deserialize;
+    use serde::Serialize;
+
+    #[derive(Default, Debug, Serialize, Deserialize)]
+    struct TestItem {}
+
+    impl StorageItem for TestItem {
+        fn serialize(&self) -> Result<Vec<u8>> {
+            todo!()
+        }
+        fn deserialize(_: &[u8]) -> Result<Self> {
+            todo!()
+        }
+    }
+
+    #[tokio::test]
+    async fn it_debugs() -> Result<()> {
+        let table_name = "test_items";
+        let storage = StorageDynamoDb::<TestItem>::new(&table_name).await;
+        println!("{storage:?}");
+
+        let storage: Box<dyn Storage<TestItem>> = Box::new(storage);
+        println!("{storage:?}");
+
+        Ok(())
     }
 }
