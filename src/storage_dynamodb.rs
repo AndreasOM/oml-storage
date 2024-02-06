@@ -144,6 +144,9 @@ impl<ITEM: StorageItem> StorageDynamoDb<ITEM> {
 
 #[async_trait]
 impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDynamoDb<ITEM> {
+    async fn ensure_storage_exists(&mut self) -> Result<()> {
+        Ok(())
+    }
     async fn create(&self) -> Result<String> {
         let mut tries = 10;
         loop {

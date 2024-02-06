@@ -22,6 +22,9 @@ impl<ITEM: StorageItem> StorageNull<ITEM> {
 
 #[async_trait]
 impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageNull<ITEM> {
+    async fn ensure_storage_exists(&mut self) -> Result<()> {
+        Ok(())
+    }
     async fn create(&self) -> Result<String> {
         if self.warnings_on_use {
             tracing::warn!("StorageNull create used!");

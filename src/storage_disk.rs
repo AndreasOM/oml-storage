@@ -21,6 +21,14 @@ pub struct StorageDisk<ITEM: StorageItem> {
 }
 
 impl<ITEM: StorageItem> StorageDisk<ITEM> {
+    pub async fn ensure_folder_exists(&mut self) -> Result<()> {
+        std::fs::create_dir_all(&self.base_path)
+            .map_err(|e| eyre!("Could not create folder {:?} -> {e}", &self.base_path))?;
+
+        Ok(())
+    }
+}
+impl<ITEM: StorageItem> StorageDisk<ITEM> {
     pub async fn new(base_path: &Path, extension: &Path) -> Self {
         Self {
             base_path: base_path.to_path_buf(),
@@ -52,6 +60,9 @@ impl<ITEM: StorageItem> StorageDisk<ITEM> {
 
 #[async_trait]
 impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDisk<ITEM> {
+    async fn ensure_storage_exists(&mut self) -> Result<()> {
+        self.ensure_folder_exists().await
+    }
     async fn create(&self) -> Result<String> {
         let mut tries = 10;
         loop {
@@ -74,7 +85,7 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDisk<ITEM> 
 
     async fn load(&self, id: &str) -> Result<ITEM> {
         let p = self.file_path(id);
-        let b = fs::read(p.clone()).map_err(|e| eyre!("{e} -> {p:?}"))?;
+        let b = fs::read(p.clone()).map_err(|e| eyre!("Can't load from {p:?} -> {e}"))?;
         let i = ITEM::deserialize(&b)?;
 
         Ok(i)
@@ -86,7 +97,7 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDisk<ITEM> 
         } else {
             let p = self.file_path(id);
             let b = item.serialize()?;
-            fs::write(p, b)?;
+            fs::write(p.clone(), b).map_err(|e| eyre!("Can't save to {p:?}: {e:?}"))?;
             Ok(())
         }
     }
@@ -113,7 +124,8 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDisk<ITEM> 
             let lock_json = serde_json::to_string_pretty(&lock)?;
 
             tracing::debug!("Lock[{who}]: Write lock to {l:?}");
-            fs::write(l, lock_json)?;
+            fs::write(l.clone(), lock_json)
+                .map_err(|e| eyre!("Can't lock {l:?} for {who}: {e:?}"))?;
 
             tracing::debug!("Lock[{who}]: Load {id}");
             let item = self.load(id).await.unwrap_or_default();
@@ -130,7 +142,7 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDisk<ITEM> 
             Err(eyre!("Lock invalid!"))
         } else {
             let l = self.lock_path(id);
-            std::fs::remove_file(l)?;
+            std::fs::remove_file(l.clone()).map_err(|e| eyre!("Can't unlock {l:?}: {e:?}"))?;
             Ok(())
         }
     }
@@ -142,7 +154,7 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDisk<ITEM> 
             return Err(eyre!("Not locked"));
         }
 
-        std::fs::remove_file(l)?;
+        std::fs::remove_file(l.clone()).map_err(|e| eyre!("Can't force unlock {l:?}: {e:?}"))?;
         Ok(())
     }
     async fn verify_lock(&self, id: &str, lock: &StorageLock) -> Result<bool> {
