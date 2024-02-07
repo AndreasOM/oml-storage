@@ -173,10 +173,34 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDisk<ITEM> 
         }
         Ok(true)
     }
+    async fn all_ids(&self) -> Result<Vec<String>> {
+        let mut ids = Vec::default();
+        let extension = self.extension.to_string_lossy(); //.to_string();
+        let extension = format!(".{}", extension);
+        for entry in fs::read_dir(&self.base_path)? {
+            if let Ok(entry) = &entry {
+                match entry.file_type() {
+                    Ok(file_type) if file_type.is_file() => {
+                        //println!("{entry:?}");
+                        //let p = entry.path();
+                        let f = entry.file_name();
+                        let f = f.to_string_lossy().to_string();
+                        if let Some(id) = f.strip_suffix(&extension) {
+                            //println!("{f} -> {id:?}");
+                            ids.push(String::from(id));
+                        }
+                    }
+                    _ => {} // skip
+                }
+            }
+        }
+        Ok(ids)
+    }
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::LockResult;
     use crate::Storage;
     use crate::StorageDisk;
     use crate::StorageItem;
@@ -191,10 +215,17 @@ mod tests {
 
     impl StorageItem for TestItem {
         fn serialize(&self) -> Result<Vec<u8>> {
-            todo!()
+            let json = serde_json::to_string_pretty(&self)?;
+
+            Ok(json.into())
         }
-        fn deserialize(_: &[u8]) -> Result<Self> {
-            todo!()
+        fn deserialize(data: &[u8]) -> Result<Self>
+        where
+            Self: Sized,
+        {
+            let i = serde_json::from_slice(&data)?;
+
+            Ok(i)
         }
     }
 
@@ -210,6 +241,47 @@ mod tests {
 
         let storage: Box<dyn Storage<TestItem>> = Box::new(storage);
         println!("{storage:?}");
+
+        Ok(())
+    }
+    #[tokio::test]
+    async fn it_gives_all_ids() -> Result<()> {
+        let mut path = env::current_dir()?;
+        path.push("data");
+        path.push("test_items");
+        let extension = Path::new("test_item.json");
+
+        let storage = StorageDisk::<TestItem>::new(&path, &extension).await;
+        //println!("{storage:?}");
+
+        let storage: Box<dyn Storage<TestItem>> = Box::new(storage);
+        //println!("{storage:?}");
+
+        let us = "TEST";
+
+        let mut ids = Vec::default();
+
+        for _ in 0..5 {
+            let item_id = storage.create().await.unwrap();
+            //println!("{item_id:?}");
+
+            let (lock, item) = match storage.lock(&item_id, &us).await? {
+                LockResult::Success { lock, item } => (lock, item),
+                LockResult::AlreadyLocked { .. } => {
+                    todo!();
+                }
+            };
+            storage.save(&item_id, &item, &lock).await?;
+            storage.unlock(&item_id, lock).await?;
+
+            ids.push(item_id);
+        }
+        let all_ids = storage.all_ids().await?;
+
+        //println!("{all_ids:#?}");
+
+        assert!(all_ids.len() > ids.len());
+        assert!(ids.iter().all(|id| all_ids.contains(id)));
 
         Ok(())
     }

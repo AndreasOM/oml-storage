@@ -5,6 +5,13 @@ use color_eyre::eyre::Result;
 ///
 /// If your item is serialisable and deserialisable via serde you can use something like:
 /// ```
+/// use color_eyre::eyre::Result;
+/// use serde::Serialize;
+/// use serde::Deserialize;
+/// use oml_storage::StorageItem;
+///
+/// #[derive(Debug,Default,Serialize,Deserialize)]
+/// pub struct TestItem {}
 /// impl StorageItem for TestItem {
 ///     fn serialize(&self) -> Result<Vec<u8>> {
 ///         let json = serde_json::to_string_pretty(&self)?;

@@ -101,6 +101,12 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageNull<ITEM> 
         }
         Ok(true)
     }
+    async fn all_ids(&self) -> Result<Vec<String>> {
+        if self.warnings_on_use {
+            tracing::warn!("StorageNull all_ids used!");
+        }
+        Ok(Vec::default())
+    }
 }
 
 #[cfg(test)]
