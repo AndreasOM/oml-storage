@@ -273,6 +273,10 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDynamoDb<IT
     async fn verify_lock(&self, _id: &str, _lock: &StorageLock) -> Result<bool> {
         todo!();
     }
+    async fn all_ids(&self) -> Result<Vec<String>> {
+        todo!();
+        // Ok(Vec::default())
+    }
 }
 
 #[cfg(test)]

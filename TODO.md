@@ -10,16 +10,22 @@
 - [ ] #disk_storage Check if base path exists
 - [ ] #disk_storage Improve error handling
 - [ ] Add feature flags to enable storage backends
+- [ ] Add (streaming) iterator for all ids
+- [ ] Add `destroy` method to delete items for good (with extra protection)
 
 ## Done
+
+- [ ] Add getter for all ids
+
+## Released
+
+### 0.1.5-alpha - 2024-01-06
 - [x] Start adding some very basic documentation
 - [x] #disk_storage Allow ensuring folder exists
 - [x] #disk_storage Improve error reporting
 
 - [x] Add test to ensure backend implementations `debug`
 - [x] Cleanup unused semaphore from DynamoDB backend
-
-## Released
 
 ### 0.1.4-alpha - 2024-01-05
 - [x] Add simple command line parameters to run demo on different backends

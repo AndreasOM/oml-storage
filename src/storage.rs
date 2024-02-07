@@ -10,7 +10,7 @@ use serde::Serialize;
 ///
 /// Note:
 /// ```
-/// 'life0, 'life1, 'async_trait
+/// // 'life0, 'life1, 'async_trait
 /// ```
 /// Are mostly just noise in the documentation, and I didn't figure out how to remove it yet.
 ///
@@ -34,6 +34,10 @@ pub trait Storage<ITEM: StorageItem + Sized>: Send + Sync + std::fmt::Debug {
 
     async fn force_unlock(&self, id: &str) -> Result<()>;
     async fn verify_lock(&self, id: &str, lock: &StorageLock) -> Result<bool>;
+
+    // Experimental
+    /// Returns all ids. This is a :HACK: and we will probably switch to an iterator at some point
+    async fn all_ids(&self) -> Result<Vec<String>>;
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
