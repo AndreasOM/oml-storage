@@ -277,6 +277,10 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDynamoDb<IT
         todo!();
         // Ok(Vec::default())
     }
+
+    async fn display_lock(&self, _id: &str) -> Result<String> {
+        todo!();
+    }
 }
 
 #[cfg(test)]

@@ -196,6 +196,20 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDisk<ITEM> 
         }
         Ok(ids)
     }
+
+    async fn display_lock(&self, id: &str) -> Result<String> {
+        let l = self.lock_path(id);
+        if !fs::metadata(&l).is_ok() {
+            return Ok(String::default());
+        } else {
+            let lock_json = fs::read(&l)?;
+            let lock: StorageLock = serde_json::from_slice(&lock_json)?;
+            let lock_string = format!("Locked by {} at {:?}", lock.who(), lock.when());
+            //            let lock_string = format!("{:?}", lock);
+
+            Ok(lock_string)
+        }
+    }
 }
 
 #[cfg(test)]
@@ -285,4 +299,40 @@ mod tests {
 
         Ok(())
     }
+
+    #[tokio::test]
+    async fn it_displays_locks() -> Result<()> {
+        let mut path = env::current_dir()?;
+        path.push("data");
+        path.push("test_items");
+        let extension = Path::new("test_item");
+
+        let storage = StorageDisk::<TestItem>::new(&path, &extension).await;
+        // println!("{storage:?}");
+
+        let storage: Box<dyn Storage<TestItem>> = Box::new(storage);
+        // println!("{storage:?}");
+
+        let us = "TEST";
+
+        let item_id = storage.create().await.unwrap();
+        //println!("{item_id:?}");
+
+        let (lock, item) = match storage.lock(&item_id, &us).await? {
+            LockResult::Success { lock, item } => (lock, item),
+            LockResult::AlreadyLocked { .. } => {
+                todo!();
+            }
+        };
+        storage.save(&item_id, &item, &lock).await?;
+        let l = storage.display_lock(&item_id).await?;
+        println!("{l:?}");
+        storage.unlock(&item_id, lock).await?;
+        let l = storage.display_lock(&item_id).await?;
+        println!("{l:?}");
+
+        Ok(())
+    }
+
+    //ensure_storage_exists
 }
