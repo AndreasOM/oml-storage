@@ -38,6 +38,9 @@ pub trait Storage<ITEM: StorageItem + Sized>: Send + Sync + std::fmt::Debug {
     // Experimental
     /// Returns all ids. This is a :HACK: and we will probably switch to an iterator at some point
     async fn all_ids(&self) -> Result<Vec<String>>;
+
+    /// Returns a human readable version of the current lock status for debugging
+    async fn display_lock(&self, id: &str) -> Result<String>;
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
@@ -52,6 +55,12 @@ impl StorageLock {
             who: who.to_string(),
             when: Utc::now(),
         }
+    }
+    pub fn who(&self) -> &str {
+        &self.who
+    }
+    pub fn when(&self) -> &DateTime<Utc> {
+        &self.when
     }
 }
 

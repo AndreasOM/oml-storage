@@ -107,6 +107,12 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageNull<ITEM> 
         }
         Ok(Vec::default())
     }
+    async fn display_lock(&self, _id: &str) -> Result<String> {
+        if self.warnings_on_use {
+            tracing::warn!("StorageNull all_ids used!");
+        }
+        Ok(String::default())
+    }
 }
 
 #[cfg(test)]

@@ -15,9 +15,13 @@
 
 ## Done
 
-- [ ] Add getter for all ids
+- [x] Add `display_lock` for debugging
+
 
 ## Released
+
+### 0.1.6-alpha - 2024-02-07
+- [x] Add getter for all ids
 
 ### 0.1.5-alpha - 2024-01-06
 - [x] Start adding some very basic documentation
