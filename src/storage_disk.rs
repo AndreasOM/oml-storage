@@ -80,7 +80,16 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDisk<ITEM> 
     async fn exists(&self, id: &str) -> Result<bool> {
         let p = self.file_path(id);
         tracing::debug!("{p:?}");
-        Ok(fs::metadata(p).is_ok())
+
+        if fs::metadata(p).is_ok() {
+            Ok(true)
+        } else {
+            // the lockfile already exists, but the data file doesn't
+            // might happen when somebody crashed during creation
+            // or is in the middle of creation
+            let p = self.lock_path(id);
+            Ok(fs::metadata(p).is_ok())
+        }
     }
 
     async fn load(&self, id: &str) -> Result<ITEM> {
@@ -331,6 +340,42 @@ mod tests {
         let l = storage.display_lock(&item_id).await?;
         println!("{l:?}");
 
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn exists_works_during_creation() -> Result<()> {
+        let mut path = env::current_dir()?;
+        path.push("data");
+        path.push("test_items");
+        let extension = Path::new("test_item");
+
+        let storage = StorageDisk::<TestItem>::new(&path, &extension).await;
+        // println!("{storage:?}");
+
+        let storage: Box<dyn Storage<TestItem>> = Box::new(storage);
+        // println!("{storage:?}");
+
+        let us = "TEST";
+
+        let item_id = nanoid::nanoid!();
+
+        let (lock, item) = match storage.lock(&item_id, &us).await? {
+            LockResult::Success { lock, item } => (lock, item),
+            LockResult::AlreadyLocked { .. } => {
+                todo!();
+            }
+        };
+        let exists_during_creation = storage.exists(&item_id).await?;
+
+        // storage.save(&item_id, &item, &lock).await?;
+        let l = storage.display_lock(&item_id).await?;
+        // println!("{l:?}");
+        storage.unlock(&item_id, lock).await?;
+        // let l = storage.display_lock(&item_id).await?;
+        // println!("{l:?}");
+
+        assert_eq!(true, exists_during_creation);
         Ok(())
     }
 
