@@ -1,4 +1,4 @@
-name: publish_crates
+name: Build
 
 on:
   workflow_dispatch:
