@@ -6,7 +6,8 @@ on:
 jobs:
   build:
 
-    runs-on: ubicloud-standard-16
+    # runs-on: ubicloud-standard-16   ## nice, but the startup overhead is just too big
+    runs-on: ubicloud-standard-4
 
     steps:
       - uses: actions/checkout@v3
