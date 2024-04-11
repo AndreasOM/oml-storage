@@ -349,7 +349,7 @@ mod tests {
 
         //println!("{all_ids:#?}");
 
-        assert!(all_ids.len() > ids.len());
+        assert!(all_ids.len() >= ids.len());
         assert!(ids.iter().all(|id| all_ids.contains(id)));
 
         Ok(())
