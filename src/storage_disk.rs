@@ -1,4 +1,6 @@
 use crate::LockResult;
+#[cfg(feature = "metadata")]
+use crate::Metadata;
 use crate::Storage;
 use crate::StorageItem;
 use crate::StorageLock;
@@ -18,6 +20,8 @@ pub struct StorageDisk<ITEM: StorageItem> {
     extension: PathBuf,
     item_type: PhantomData<ITEM>,
     lock_semaphore: Semaphore,
+    #[cfg(feature = "metadata")]
+    metadata: Metadata<ITEM>,
 }
 
 impl<ITEM: StorageItem> StorageDisk<ITEM> {
@@ -35,6 +39,8 @@ impl<ITEM: StorageItem> StorageDisk<ITEM> {
             extension: extension.to_path_buf(),
             item_type: PhantomData,
             lock_semaphore: Semaphore::new(1),
+            #[cfg(feature = "metadata")]
+            metadata: Metadata::default(),
         }
     }
 
@@ -56,6 +62,18 @@ impl<ITEM: StorageItem> StorageDisk<ITEM> {
 
         p
     }
+}
+
+#[cfg(feature = "metadata")]
+impl<ITEM: StorageItem> StorageDisk<ITEM> {
+    fn update_highest_seen_id(&self, id: &str) {
+        self.metadata.update_highest_seen_id(id);
+    }
+}
+
+#[cfg(not(feature = "metadata"))]
+impl<ITEM: StorageItem> StorageDisk<ITEM> {
+    fn update_highest_seen_id(&self, _id: &str) {}
 }
 
 #[async_trait]
@@ -82,13 +100,19 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDisk<ITEM> 
         tracing::debug!("{p:?}");
 
         if fs::metadata(p).is_ok() {
+            self.update_highest_seen_id(&id);
             Ok(true)
         } else {
             // the lockfile already exists, but the data file doesn't
             // might happen when somebody crashed during creation
             // or is in the middle of creation
             let p = self.lock_path(id);
-            Ok(fs::metadata(p).is_ok())
+            if fs::metadata(p).is_ok() {
+                self.update_highest_seen_id(&id);
+                Ok(true)
+            } else {
+                Ok(false)
+            }
         }
     }
 
@@ -96,6 +120,7 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDisk<ITEM> 
         let p = self.file_path(id);
         let b = fs::read(p.clone()).map_err(|e| eyre!("Can't load from {p:?} -> {e}"))?;
         let i = ITEM::deserialize(&b)?;
+        self.update_highest_seen_id(&id);
 
         Ok(i)
     }
@@ -107,6 +132,7 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDisk<ITEM> 
             let p = self.file_path(id);
             let b = item.serialize()?;
             fs::write(p.clone(), b).map_err(|e| eyre!("Can't save to {p:?}: {e:?}"))?;
+            self.update_highest_seen_id(&id);
             Ok(())
         }
     }
@@ -124,6 +150,7 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDisk<ITEM> 
                 tracing::debug!("Lock[{who}]: Dropped Semaphore"); // close enough
                                                                    //return Err(eyre!("Already locked"));
                                                                    // :TODO: load lock
+                self.update_highest_seen_id(&id);
                 return Ok(LockResult::AlreadyLocked {
                     who: String::from(":TODO:"),
                 });
@@ -143,6 +170,7 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDisk<ITEM> 
             tracing::debug!("Lock[{who}]: Dropped Semaphore"); // close enough
             (lock, item)
         };
+        self.update_highest_seen_id(&id);
         Ok(LockResult::Success { lock, item })
     }
 
@@ -183,19 +211,26 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDisk<ITEM> 
         Ok(true)
     }
     async fn all_ids(&self) -> Result<Vec<String>> {
+        //tracing::debug!("all_ids");
         let mut ids = Vec::default();
         let extension = self.extension.to_string_lossy(); //.to_string();
         let extension = format!(".{}", extension);
+        let mut highest_id = String::default();
         for entry in fs::read_dir(&self.base_path)? {
             if let Ok(entry) = &entry {
                 match entry.file_type() {
                     Ok(file_type) if file_type.is_file() => {
-                        //println!("{entry:?}");
+                        //tracing::debug!("{entry:?}");
                         //let p = entry.path();
                         let f = entry.file_name();
                         let f = f.to_string_lossy().to_string();
                         if let Some(id) = f.strip_suffix(&extension) {
-                            //println!("{f} -> {id:?}");
+                            //tracing::debug!("{f} -> {id:?}");
+                            if *id > *highest_id {
+                                highest_id = id.to_string(); // :TODO: decide if we want to keep this
+                            } else {
+                                tracing::debug!("{id} < {highest_id}");
+                            }
                             ids.push(String::from(id));
                         }
                     }
@@ -203,6 +238,7 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDisk<ITEM> 
                 }
             }
         }
+        self.update_highest_seen_id(&highest_id);
         Ok(ids)
     }
 
@@ -218,6 +254,10 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDisk<ITEM> 
 
             Ok(lock_string)
         }
+    }
+    #[cfg(feature = "metadata")]
+    async fn metadata_highest_seen_id(&self) -> String {
+        self.metadata.highest_seen_id()
     }
 }
 

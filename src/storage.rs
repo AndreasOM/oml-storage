@@ -41,6 +41,9 @@ pub trait Storage<ITEM: StorageItem + Sized>: Send + Sync + std::fmt::Debug {
 
     /// Returns a human readable version of the current lock status for debugging
     async fn display_lock(&self, id: &str) -> Result<String>;
+
+    #[cfg(feature = "metadata")]
+    async fn metadata_highest_seen_id(&self) -> String;
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]

@@ -22,3 +22,7 @@ mod storage_dynamodb;
 pub use storage_dynamodb::StorageDynamoDb;
 mod storage_null;
 pub use storage_null::StorageNull;
+
+#[cfg(feature = "metadata")]
+mod metadata;
+pub(crate) use metadata::Metadata;

@@ -281,6 +281,10 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDynamoDb<IT
     async fn display_lock(&self, _id: &str) -> Result<String> {
         todo!();
     }
+    #[cfg(feature = "metadata")]
+    async fn metadata_highest_seen_id(&self) -> String {
+        todo!();
+    }
 }
 
 #[cfg(test)]

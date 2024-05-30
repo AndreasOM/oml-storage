@@ -2,11 +2,17 @@
 
 ## InProgress
 
+- [ ] Add `metadata`feature
+	- [ ] Remember highest seen id
+	- [ ] Fix IDs?!
+
+## ToDo
+
+
 - [ ] Implement dynamodb backed storage
 	- [ ] #dynamodb_storage Implement exists
 	- [ ] #dynamodb_storage Check existing lock when locking
 
-## ToDo
 - [ ] #disk_storage Check if base path exists
 - [ ] #disk_storage Improve error handling
 - [ ] Add feature flags to enable storage backends

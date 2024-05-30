@@ -1,6 +1,9 @@
+use crate::LockResult;
 /// This is a *Null* implementation that does nothing.
 /// It can be used as a default, and can warn when actually being used.
-use crate::LockResult;
+
+#[cfg(feature = "metadata")]
+use crate::Metadata;
 use crate::Storage;
 use crate::StorageItem;
 use crate::StorageLock;
@@ -14,12 +17,26 @@ use core::marker::PhantomData;
 pub struct StorageNull<ITEM: StorageItem> {
     item_type: PhantomData<ITEM>,
     warnings_on_use: bool,
+    #[cfg(feature = "metadata")]
+    metadata: Metadata<ITEM>,
 }
 
 impl<ITEM: StorageItem> StorageNull<ITEM> {
     pub fn enable_warnings_on_use(&mut self) {
         self.warnings_on_use = true;
     }
+}
+
+#[cfg(feature = "metadata")]
+impl<ITEM: StorageItem> StorageNull<ITEM> {
+    fn update_highest_seen_id(&self, id: &str) {
+        self.metadata.update_highest_seen_id(id);
+    }
+}
+
+#[cfg(not(feature = "metadata"))]
+impl<ITEM: StorageItem> StorageNull<ITEM> {
+    fn update_highest_seen_id(&self, _id: &str) {}
 }
 
 #[async_trait]
@@ -35,6 +52,7 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageNull<ITEM> 
         loop {
             let id = nanoid::nanoid!();
             if !self.exists(&id).await? {
+                // NO! self.update_highest_seen_id( &id );
                 return Ok(id);
             }
 
@@ -51,11 +69,12 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageNull<ITEM> 
         Ok(false)
     }
 
-    async fn load(&self, _id: &str) -> Result<ITEM> {
+    async fn load(&self, id: &str) -> Result<ITEM> {
         if self.warnings_on_use {
             tracing::warn!("StorageNull load used!");
         }
         let i = ITEM::default();
+        self.update_highest_seen_id(&id);
 
         Ok(i)
     }
@@ -112,6 +131,14 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageNull<ITEM> 
             tracing::warn!("StorageNull all_ids used!");
         }
         Ok(String::default())
+    }
+
+    #[cfg(feature = "metadata")]
+    async fn metadata_highest_seen_id(&self) -> String {
+        if self.warnings_on_use {
+            tracing::warn!("StorageNull metadata_highest_seen_id used!");
+        }
+        self.metadata.highest_seen_id()
     }
 }
 

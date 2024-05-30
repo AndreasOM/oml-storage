@@ -180,8 +180,18 @@ async fn main() -> Result<()> {
         storage.force_unlock(&id).await?;
     }
     // ---
+    #[cfg(feature = "metadata")]
+    {
+        tracing::info!("Feature: `metadata` demo");
+        let highest_seen_id = storage.metadata_highest_seen_id().await;
+        tracing::info!("Highest seen id: '{highest_seen_id}'");
+        let item2 = storage.lock("133", "DUMMY").await?;
+        let _ = storage.all_ids().await;
+        let highest_seen_id = storage.metadata_highest_seen_id().await;
+        tracing::info!("Highest seen id: '{highest_seen_id}'");
+    }
 
-    tracing::info!("Demo started");
+    tracing::info!("Demo ended");
     Ok(())
 }
 
