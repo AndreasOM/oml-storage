@@ -2,11 +2,10 @@
 
 ## InProgress
 
-- [ ] Add `metadata`feature
-	- [ ] Remember highest seen id
-	- [ ] Fix IDs?!
 
 ## ToDo
+
+- [ ] Fix IDs?! -> aka make the type be user definable
 
 
 - [ ] Implement dynamodb backed storage
@@ -21,6 +20,11 @@
 
 ## Done
 
+## 2024-05-30
+- [ ] Add `metadata`feature
+	- [x] Remember highest seen id
+
+## earlier...
 - [x] Add `display_lock` for debugging
 
 

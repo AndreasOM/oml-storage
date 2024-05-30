@@ -185,7 +185,7 @@ async fn main() -> Result<()> {
         tracing::info!("Feature: `metadata` demo");
         let highest_seen_id = storage.metadata_highest_seen_id().await;
         tracing::info!("Highest seen id: '{highest_seen_id}'");
-        let item2 = storage.lock("133", "DUMMY").await?;
+        //let item2 = storage.lock("133".into(), "DUMMY").await?;
         let _ = storage.all_ids().await;
         let highest_seen_id = storage.metadata_highest_seen_id().await;
         tracing::info!("Highest seen id: '{highest_seen_id}'");
@@ -234,7 +234,15 @@ impl TestItem {
     }
 }
 
+impl TestItem {
+    pub fn make_id(id: String) -> <TestItem as StorageItem>::ID {
+        todo!();
+    }
+}
+
 impl StorageItem for TestItem {
+    type ID = String;
+
     fn serialize(&self) -> Result<Vec<u8>> {
         let json = serde_json::to_string_pretty(&self)?;
 
@@ -247,5 +255,8 @@ impl StorageItem for TestItem {
         let i = serde_json::from_slice(&data)?;
 
         Ok(i)
+    }
+    fn generate_id() -> <TestItem as StorageItem>::ID {
+        todo!();
     }
 }

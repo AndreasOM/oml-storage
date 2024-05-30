@@ -147,10 +147,11 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDynamoDb<IT
     async fn ensure_storage_exists(&mut self) -> Result<()> {
         Ok(())
     }
-    async fn create(&self) -> Result<String> {
+    async fn create(&self) -> Result<ITEM::ID> {
         let mut tries = 10;
         loop {
-            let id = nanoid::nanoid!();
+            //let id = nanoid::nanoid!();
+            let id = ITEM::generate_id();
             if !self.exists(&id).await? {
                 return Ok(id);
             }
@@ -161,15 +162,15 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDynamoDb<IT
             }
         }
     }
-    async fn exists(&self, _id: &str) -> Result<bool> {
+    async fn exists(&self, _id: &ITEM::ID) -> Result<bool> {
         Ok(false) // :TODO:
     }
 
-    async fn load(&self, _id: &str) -> Result<ITEM> {
+    async fn load(&self, _id: &ITEM::ID) -> Result<ITEM> {
         todo!();
     }
 
-    async fn save(&self, id: &str, item: &ITEM, lock: &StorageLock) -> Result<()> {
+    async fn save(&self, id: &ITEM::ID, item: &ITEM, lock: &StorageLock) -> Result<()> {
         tracing::info!("Saving: {id} -> {item:?} with lock {lock:?}");
         let client = self.client().await?;
         let data = item.serialize()?;
@@ -177,7 +178,8 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDynamoDb<IT
         match client
             .update_item()
             .table_name(&self.table_name)
-            .key("id", AttributeValue::S(String::from(id)))
+            //.key("id", AttributeValue::S(String::from(id)))
+            .key("id", AttributeValue::S(id.to_string()))
             //.expression_attribute_names()
             //.update_expression("SET #Count = if_not_exists(#Count, :zero) + :one, Images = list_append(if_not_exists(Images, :empty), :image)")
             .update_expression("SET #Data = :data")
@@ -200,7 +202,7 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDynamoDb<IT
             }
         }
     }
-    async fn lock(&self, id: &str, who: &str) -> Result<LockResult<ITEM>> {
+    async fn lock(&self, id: &ITEM::ID, who: &str) -> Result<LockResult<ITEM>> {
         let lock = StorageLock::new(who);
         let lock_json = serde_json::to_string_pretty(&lock)?;
 
@@ -210,7 +212,8 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDynamoDb<IT
         match client
             .update_item()
             .table_name(&self.table_name)
-            .key("id", AttributeValue::S(String::from(id)))
+            //.key("id", AttributeValue::S(String::from(id)))
+            .key("id", AttributeValue::S(id.to_string()))
             //.expression_attribute_names()
             //.update_expression("SET #Count = if_not_exists(#Count, :zero) + :one, Images = list_append(if_not_exists(Images, :empty), :image)")
             .update_expression("SET #Lock = :lock")
@@ -263,26 +266,26 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDynamoDb<IT
         }
     }
 
-    async fn unlock(&self, _id: &str, _lock: StorageLock) -> Result<()> {
+    async fn unlock(&self, _id: &ITEM::ID, _lock: StorageLock) -> Result<()> {
         todo!();
     }
 
-    async fn force_unlock(&self, _id: &str) -> Result<()> {
+    async fn force_unlock(&self, _id: &ITEM::ID) -> Result<()> {
         todo!();
     }
-    async fn verify_lock(&self, _id: &str, _lock: &StorageLock) -> Result<bool> {
+    async fn verify_lock(&self, _id: &ITEM::ID, _lock: &StorageLock) -> Result<bool> {
         todo!();
     }
-    async fn all_ids(&self) -> Result<Vec<String>> {
+    async fn all_ids(&self) -> Result<Vec<ITEM::ID>> {
         todo!();
         // Ok(Vec::default())
     }
 
-    async fn display_lock(&self, _id: &str) -> Result<String> {
+    async fn display_lock(&self, _id: &ITEM::ID) -> Result<String> {
         todo!();
     }
     #[cfg(feature = "metadata")]
-    async fn metadata_highest_seen_id(&self) -> String {
+    async fn metadata_highest_seen_id(&self) -> ITEM::ID {
         todo!();
     }
 }
