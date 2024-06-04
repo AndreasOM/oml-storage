@@ -2,6 +2,7 @@ use crate::StorageItem;
 use async_trait::async_trait;
 use chrono::DateTime;
 use chrono::Utc;
+use color_eyre::eyre::eyre;
 use color_eyre::eyre::Result;
 use serde::Deserialize;
 use serde::Serialize;
@@ -23,27 +24,27 @@ pub trait Storage<ITEM: StorageItem + Sized>: Send + Sync + std::fmt::Debug {
     /// Creates a new item with a random id.
     /// If you want a specific it use [Storage::lock] instead.
     /// Warning: `id` creation is still work-in-progress.
-    async fn create(&self) -> Result<String>;
-    async fn exists(&self, id: &str) -> Result<bool>;
-    async fn load(&self, id: &str) -> Result<ITEM>;
-    async fn save(&self, id: &str, item: &ITEM, lock: &StorageLock) -> Result<()>;
+    async fn create(&self) -> Result<ITEM::ID>;
+    async fn exists(&self, id: &ITEM::ID) -> Result<bool>;
+    async fn load(&self, id: &ITEM::ID) -> Result<ITEM>;
+    async fn save(&self, id: &ITEM::ID, item: &ITEM, lock: &StorageLock) -> Result<()>;
 
     /// Tries to lock an (existing or new) item
-    async fn lock(&self, id: &str, who: &str) -> Result<LockResult<ITEM>>;
-    async fn unlock(&self, id: &str, lock: StorageLock) -> Result<()>;
+    async fn lock(&self, id: &ITEM::ID, who: &str) -> Result<LockResult<ITEM>>;
+    async fn unlock(&self, id: &ITEM::ID, lock: StorageLock) -> Result<()>;
 
-    async fn force_unlock(&self, id: &str) -> Result<()>;
-    async fn verify_lock(&self, id: &str, lock: &StorageLock) -> Result<bool>;
+    async fn force_unlock(&self, id: &ITEM::ID) -> Result<()>;
+    async fn verify_lock(&self, id: &ITEM::ID, lock: &StorageLock) -> Result<bool>;
 
     // Experimental
     /// Returns all ids. This is a :HACK: and we will probably switch to an iterator at some point
-    async fn all_ids(&self) -> Result<Vec<String>>;
+    async fn all_ids(&self) -> Result<Vec<ITEM::ID>>;
 
     /// Returns a human readable version of the current lock status for debugging
-    async fn display_lock(&self, id: &str) -> Result<String>;
+    async fn display_lock(&self, id: &ITEM::ID) -> Result<String>;
 
     #[cfg(feature = "metadata")]
-    async fn metadata_highest_seen_id(&self) -> String;
+    async fn metadata_highest_seen_id(&self) -> ITEM::ID;
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
@@ -71,4 +72,13 @@ impl StorageLock {
 pub enum LockResult<ITEM> {
     Success { lock: StorageLock, item: ITEM },
     AlreadyLocked { who: String },
+}
+
+impl<ITEM> LockResult<ITEM> {
+    pub fn success(self) -> Result<(StorageLock, ITEM)> {
+        match self {
+            LockResult::Success { lock, item } => Ok((lock, item)),
+            LockResult::AlreadyLocked { who } => Err(eyre!("Already locked by {who:?}")),
+        }
+    }
 }

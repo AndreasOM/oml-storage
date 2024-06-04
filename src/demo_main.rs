@@ -39,7 +39,10 @@ enum TestResult {
     AlreadyLocked,
 }
 
-async fn test(storage: Arc<Box<dyn Storage<TestItem>>>, id: String) -> Result<TestResult> {
+async fn test(
+    storage: Arc<Box<dyn Storage<TestItem>>>,
+    id: <TestItem as StorageItem>::ID,
+) -> Result<TestResult> {
     let us = nanoid::nanoid!();
     // let test_span = span!(Level::DEBUG, "test", us = us);
     // let _ = test_span.enter();
@@ -69,7 +72,7 @@ async fn test(storage: Arc<Box<dyn Storage<TestItem>>>, id: String) -> Result<Te
         let broken_lock = StorageLock::new("broken");
 
         if !storage.verify_lock(&id, &broken_lock).await? {
-            tracing::warn!("Broken Lock invalid!");
+            tracing::warn!("Broken Lock invalid! (as expected!)");
         }
         tracing::debug!("Save {item:?} with broken lock");
         let _ = storage.save(&id, &item, &broken_lock).await; // ?; /// !!!
@@ -148,7 +151,7 @@ async fn main() -> Result<()> {
     test(storage.clone(), id.clone()).await?;
     */
 
-    let id = String::from("1");
+    let id = TestItem::make_id("1")?; //String::from("1");
     let mut failed = 0;
     let mut succeeded = 0;
     let mut already_locked = 0;
@@ -185,7 +188,11 @@ async fn main() -> Result<()> {
         tracing::info!("Feature: `metadata` demo");
         let highest_seen_id = storage.metadata_highest_seen_id().await;
         tracing::info!("Highest seen id: '{highest_seen_id}'");
-        let item2 = storage.lock("133", "DUMMY").await?;
+        let item2_id = TestItem::generate_next_id(Some(&highest_seen_id));
+        let item2_id = TestItem::generate_next_id(Some(&item2_id));
+        let (lock2, _item2) = storage.lock(&item2_id, "DUMMY").await?.success()?;
+        tracing::info!("Item2 lock {lock2:?}");
+        storage.unlock(&item2_id, lock2).await?;
         let _ = storage.all_ids().await;
         let highest_seen_id = storage.metadata_highest_seen_id().await;
         tracing::info!("Highest seen id: '{highest_seen_id}'");
@@ -234,7 +241,36 @@ impl TestItem {
     }
 }
 
+impl TestItem {
+    /*
+    pub fn make_id(id: String) -> <TestItem as StorageItem>::ID {
+        todo!();
+    }
+    */
+    /*
+    fn generate_next_id_u32( a_previous_id: Option<&<TestItem as StorageItem>::ID> ) -> <TestItem as StorageItem>::ID {
+        tracing::info!("generate_next_id_u32 {a_previous_id:?}");
+        let id = if let Some( a_previous_id ) = a_previous_id {
+            a_previous_id + 1
+        } else {
+            1
+        };
+        id
+    }
+    */
+    fn generate_next_id_string(
+        a_previous_id: Option<&<TestItem as StorageItem>::ID>,
+    ) -> <TestItem as StorageItem>::ID {
+        tracing::info!("generate_next_id_string {a_previous_id:?}");
+        let id = nanoid::nanoid!();
+        id
+    }
+}
+
 impl StorageItem for TestItem {
+    //type ID = u32;
+    type ID = String;
+
     fn serialize(&self) -> Result<Vec<u8>> {
         let json = serde_json::to_string_pretty(&self)?;
 
@@ -247,5 +283,13 @@ impl StorageItem for TestItem {
         let i = serde_json::from_slice(&data)?;
 
         Ok(i)
+    }
+    fn generate_next_id(a_previous_id: Option<&Self::ID>) -> Self::ID {
+        //Self::generate_next_id_u32( a_previous_id )
+        Self::generate_next_id_string(a_previous_id)
+    }
+    fn make_id(id: &str) -> Result<Self::ID> {
+        let id = id.parse::<Self::ID>()?;
+        Ok(id)
     }
 }

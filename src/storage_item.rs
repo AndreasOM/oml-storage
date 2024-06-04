@@ -32,8 +32,27 @@ use color_eyre::eyre::Result;
 
 #[async_trait]
 pub trait StorageItem: core::fmt::Debug + std::default::Default + std::marker::Sync {
+    type ID: ToString
+        // + for<'a> From<&'a str> -> use make_id
+        + Sync
+        + Send
+        + core::fmt::Debug
+        + std::fmt::Display
+        + PartialOrd
+        + Clone
+        + Default;
     fn serialize(&self) -> Result<Vec<u8>>;
     fn deserialize(data: &[u8]) -> Result<Self>
     where
         Self: Sized;
+
+    /// Experimental. Might be gone soon, or not.
+    fn generate_next_id(a_previous_id: Option<&Self::ID>) -> Self::ID;
+
+    fn make_id(id: &str) -> Result<Self::ID>;
 }
+/*
+pub trait StorageItemId {
+
+}
+*/

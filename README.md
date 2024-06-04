@@ -10,3 +10,13 @@ and things might change a lot.
 
 We do use it in production for one of our games,
 so it _should_ be *good enough*.
+
+
+## Breaking Changes
+
+## 0.1.x -> 0.2.x
+
+### Replaced &str ID with ITEM::ID
+
+- [ ] You will need to implement `make_id` and `generate_next_id` for you Items!
+- [ ] Consider extra careful testing when using anything but String for ITEM::ID

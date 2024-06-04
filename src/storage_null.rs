@@ -29,7 +29,7 @@ impl<ITEM: StorageItem> StorageNull<ITEM> {
 
 #[cfg(feature = "metadata")]
 impl<ITEM: StorageItem> StorageNull<ITEM> {
-    fn update_highest_seen_id(&self, id: &str) {
+    fn update_highest_seen_id(&self, id: &ITEM::ID) {
         self.metadata.update_highest_seen_id(id);
     }
 }
@@ -44,13 +44,14 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageNull<ITEM> 
     async fn ensure_storage_exists(&mut self) -> Result<()> {
         Ok(())
     }
-    async fn create(&self) -> Result<String> {
+    async fn create(&self) -> Result<ITEM::ID> {
         if self.warnings_on_use {
             tracing::warn!("StorageNull create used!");
         }
         let mut tries = 10;
         loop {
-            let id = nanoid::nanoid!();
+            //let id = nanoid::nanoid!();
+            let id = ITEM::generate_next_id(None);
             if !self.exists(&id).await? {
                 // NO! self.update_highest_seen_id( &id );
                 return Ok(id);
@@ -62,14 +63,14 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageNull<ITEM> 
             }
         }
     }
-    async fn exists(&self, _id: &str) -> Result<bool> {
+    async fn exists(&self, _id: &ITEM::ID) -> Result<bool> {
         if self.warnings_on_use {
             tracing::warn!("StorageNull exists used!");
         }
         Ok(false)
     }
 
-    async fn load(&self, id: &str) -> Result<ITEM> {
+    async fn load(&self, id: &ITEM::ID) -> Result<ITEM> {
         if self.warnings_on_use {
             tracing::warn!("StorageNull load used!");
         }
@@ -79,13 +80,13 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageNull<ITEM> 
         Ok(i)
     }
 
-    async fn save(&self, _id: &str, _item: &ITEM, _lock: &StorageLock) -> Result<()> {
+    async fn save(&self, _id: &ITEM::ID, _item: &ITEM, _lock: &StorageLock) -> Result<()> {
         if self.warnings_on_use {
             tracing::warn!("StorageNull save used!");
         }
         Ok(())
     }
-    async fn lock(&self, id: &str, who: &str) -> Result<LockResult<ITEM>> {
+    async fn lock(&self, id: &ITEM::ID, who: &str) -> Result<LockResult<ITEM>> {
         if self.warnings_on_use {
             tracing::warn!("StorageNull lock used!");
         }
@@ -100,7 +101,7 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageNull<ITEM> 
         Ok(LockResult::Success { lock, item })
     }
 
-    async fn unlock(&self, _id: &str, _lock: StorageLock) -> Result<()> {
+    async fn unlock(&self, _id: &ITEM::ID, _lock: StorageLock) -> Result<()> {
         if self.warnings_on_use {
             tracing::warn!("StorageNull unlock used!");
         }
@@ -108,25 +109,25 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageNull<ITEM> 
         Ok(())
     }
 
-    async fn force_unlock(&self, _id: &str) -> Result<()> {
+    async fn force_unlock(&self, _id: &ITEM::ID) -> Result<()> {
         if self.warnings_on_use {
             tracing::warn!("StorageNull force_unlock used!");
         }
         Ok(())
     }
-    async fn verify_lock(&self, _id: &str, _lock: &StorageLock) -> Result<bool> {
+    async fn verify_lock(&self, _id: &ITEM::ID, _lock: &StorageLock) -> Result<bool> {
         if self.warnings_on_use {
             tracing::warn!("StorageNull verify_lock used!");
         }
         Ok(true)
     }
-    async fn all_ids(&self) -> Result<Vec<String>> {
+    async fn all_ids(&self) -> Result<Vec<ITEM::ID>> {
         if self.warnings_on_use {
             tracing::warn!("StorageNull all_ids used!");
         }
         Ok(Vec::default())
     }
-    async fn display_lock(&self, _id: &str) -> Result<String> {
+    async fn display_lock(&self, _id: &ITEM::ID) -> Result<String> {
         if self.warnings_on_use {
             tracing::warn!("StorageNull all_ids used!");
         }
@@ -134,7 +135,7 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageNull<ITEM> 
     }
 
     #[cfg(feature = "metadata")]
-    async fn metadata_highest_seen_id(&self) -> String {
+    async fn metadata_highest_seen_id(&self) -> ITEM::ID {
         if self.warnings_on_use {
             tracing::warn!("StorageNull metadata_highest_seen_id used!");
         }

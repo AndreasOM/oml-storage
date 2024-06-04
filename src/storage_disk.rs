@@ -44,19 +44,21 @@ impl<ITEM: StorageItem> StorageDisk<ITEM> {
         }
     }
 
-    fn file_path(&self, id: &str) -> PathBuf {
+    fn file_path(&self, id: &ITEM::ID) -> PathBuf {
         let mut p = PathBuf::new();
         p.push(&self.base_path);
-        let idp = Path::new(id);
+        let id = format!("{id}");
+        let idp = Path::new(&id);
         p.push(idp);
         p.set_extension(&self.extension);
 
         p
     }
-    fn lock_path(&self, id: &str) -> PathBuf {
+    fn lock_path(&self, id: &ITEM::ID) -> PathBuf {
         let mut p = PathBuf::new();
         p.push(&self.base_path);
-        let idp = Path::new(id);
+        let id = format!("{id}");
+        let idp = Path::new(&id);
         p.push(idp);
         p.set_extension("lock");
 
@@ -66,7 +68,7 @@ impl<ITEM: StorageItem> StorageDisk<ITEM> {
 
 #[cfg(feature = "metadata")]
 impl<ITEM: StorageItem> StorageDisk<ITEM> {
-    fn update_highest_seen_id(&self, id: &str) {
+    fn update_highest_seen_id(&self, id: &ITEM::ID) {
         self.metadata.update_highest_seen_id(id);
     }
 }
@@ -81,10 +83,11 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDisk<ITEM> 
     async fn ensure_storage_exists(&mut self) -> Result<()> {
         self.ensure_folder_exists().await
     }
-    async fn create(&self) -> Result<String> {
+    async fn create(&self) -> Result<ITEM::ID> {
         let mut tries = 10;
         loop {
-            let id = nanoid::nanoid!();
+            //let id = nanoid::nanoid!();
+            let id = ITEM::generate_next_id(None);
             if !self.exists(&id).await? {
                 return Ok(id);
             }
@@ -95,7 +98,9 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDisk<ITEM> 
             }
         }
     }
-    async fn exists(&self, id: &str) -> Result<bool> {
+    async fn exists(&self, id: &ITEM::ID) -> Result<bool> {
+        //let p = self.file_path(id.into());
+        //let p = self.file_path(&format!("{id}"));
         let p = self.file_path(id);
         tracing::debug!("{p:?}");
 
@@ -116,7 +121,7 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDisk<ITEM> 
         }
     }
 
-    async fn load(&self, id: &str) -> Result<ITEM> {
+    async fn load(&self, id: &ITEM::ID) -> Result<ITEM> {
         let p = self.file_path(id);
         let b = fs::read(p.clone()).map_err(|e| eyre!("Can't load from {p:?} -> {e}"))?;
         let i = ITEM::deserialize(&b)?;
@@ -125,7 +130,7 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDisk<ITEM> 
         Ok(i)
     }
 
-    async fn save(&self, id: &str, item: &ITEM, lock: &StorageLock) -> Result<()> {
+    async fn save(&self, id: &ITEM::ID, item: &ITEM, lock: &StorageLock) -> Result<()> {
         if !self.verify_lock(id, lock).await? {
             Err(eyre!("Lock invalid!"))
         } else {
@@ -136,7 +141,7 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDisk<ITEM> 
             Ok(())
         }
     }
-    async fn lock(&self, id: &str, who: &str) -> Result<LockResult<ITEM>> {
+    async fn lock(&self, id: &ITEM::ID, who: &str) -> Result<LockResult<ITEM>> {
         let l = self.lock_path(id);
         let (lock, item) = {
             let sem = self.lock_semaphore.acquire().await?;
@@ -174,7 +179,7 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDisk<ITEM> 
         Ok(LockResult::Success { lock, item })
     }
 
-    async fn unlock(&self, id: &str, lock: StorageLock) -> Result<()> {
+    async fn unlock(&self, id: &ITEM::ID, lock: StorageLock) -> Result<()> {
         if !self.verify_lock(id, &lock).await? {
             Err(eyre!("Lock invalid!"))
         } else {
@@ -184,7 +189,7 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDisk<ITEM> 
         }
     }
 
-    async fn force_unlock(&self, id: &str) -> Result<()> {
+    async fn force_unlock(&self, id: &ITEM::ID) -> Result<()> {
         let l = self.lock_path(id);
         if !fs::metadata(&l).is_ok() {
             tracing::warn!("Lockfile {l:?} doesn't exists");
@@ -194,7 +199,7 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDisk<ITEM> 
         std::fs::remove_file(l.clone()).map_err(|e| eyre!("Can't force unlock {l:?}: {e:?}"))?;
         Ok(())
     }
-    async fn verify_lock(&self, id: &str, lock: &StorageLock) -> Result<bool> {
+    async fn verify_lock(&self, id: &ITEM::ID, lock: &StorageLock) -> Result<bool> {
         let l = self.lock_path(id);
         if !fs::metadata(&l).is_ok() {
             tracing::warn!("Lockfile {l:?} doesn't exists");
@@ -210,12 +215,12 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDisk<ITEM> 
         }
         Ok(true)
     }
-    async fn all_ids(&self) -> Result<Vec<String>> {
+    async fn all_ids(&self) -> Result<Vec<ITEM::ID>> {
         //tracing::debug!("all_ids");
         let mut ids = Vec::default();
         let extension = self.extension.to_string_lossy(); //.to_string();
         let extension = format!(".{}", extension);
-        let mut highest_id = String::default();
+        let mut highest_id = ITEM::ID::default();
         for entry in fs::read_dir(&self.base_path)? {
             if let Ok(entry) = &entry {
                 match entry.file_type() {
@@ -226,12 +231,14 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDisk<ITEM> 
                         let f = f.to_string_lossy().to_string();
                         if let Some(id) = f.strip_suffix(&extension) {
                             //tracing::debug!("{f} -> {id:?}");
-                            if *id > *highest_id {
-                                highest_id = id.to_string(); // :TODO: decide if we want to keep this
+                            //let id: ITEM::ID = id.try_into().map_err(|e| eyre!("Can not convert {id} into ITEM::ID -> {e:?}") )?;
+                            let id: ITEM::ID = ITEM::make_id(id)?;
+                            if id > highest_id {
+                                highest_id = id.to_owned(); // :TODO: decide if we want to keep this
                             } else {
                                 tracing::debug!("{id} < {highest_id}");
                             }
-                            ids.push(String::from(id));
+                            ids.push(id);
                         }
                     }
                     _ => {} // skip
@@ -242,7 +249,7 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDisk<ITEM> 
         Ok(ids)
     }
 
-    async fn display_lock(&self, id: &str) -> Result<String> {
+    async fn display_lock(&self, id: &ITEM::ID) -> Result<String> {
         let l = self.lock_path(id);
         if !fs::metadata(&l).is_ok() {
             return Ok(String::default());
@@ -256,7 +263,7 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDisk<ITEM> 
         }
     }
     #[cfg(feature = "metadata")]
-    async fn metadata_highest_seen_id(&self) -> String {
+    async fn metadata_highest_seen_id(&self) -> ITEM::ID {
         self.metadata.highest_seen_id()
     }
 }

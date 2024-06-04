@@ -2,12 +2,13 @@
 
 ## InProgress
 
-- [ ] Add `metadata`feature
-	- [ ] Remember highest seen id
-	- [ ] Fix IDs?!
+
 
 ## ToDo
 
+- [ ] Split demo/test into separate crates
+
+- [ ] Consider using error instead of LockResult?!
 
 - [ ] Implement dynamodb backed storage
 	- [ ] #dynamodb_storage Implement exists
@@ -21,6 +22,15 @@
 
 ## Done
 
+## 2024-06-04
+- [x] Fix IDs?! -> aka make the type be user definable (Needs careful testing)
+	-> Breaks metadata numbers in Strings as IDs!
+
+## 2024-05-30
+- [ ] Add `metadata`feature
+	- [x] Remember highest seen id
+
+## earlier...
 - [x] Add `display_lock` for debugging
 
 
