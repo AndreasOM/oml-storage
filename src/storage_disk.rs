@@ -87,7 +87,7 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDisk<ITEM> 
         let mut tries = 10;
         loop {
             //let id = nanoid::nanoid!();
-            let id = ITEM::generate_id();
+            let id = ITEM::generate_next_id(None);
             if !self.exists(&id).await? {
                 return Ok(id);
             }
@@ -231,7 +231,8 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDisk<ITEM> 
                         let f = f.to_string_lossy().to_string();
                         if let Some(id) = f.strip_suffix(&extension) {
                             //tracing::debug!("{f} -> {id:?}");
-                            let id: ITEM::ID = id.into();
+                            //let id: ITEM::ID = id.try_into().map_err(|e| eyre!("Can not convert {id} into ITEM::ID -> {e:?}") )?;
+                            let id: ITEM::ID = ITEM::make_id(id)?;
                             if id > highest_id {
                                 highest_id = id.to_owned(); // :TODO: decide if we want to keep this
                             } else {

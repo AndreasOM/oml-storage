@@ -151,7 +151,7 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDynamoDb<IT
         let mut tries = 10;
         loop {
             //let id = nanoid::nanoid!();
-            let id = ITEM::generate_id();
+            let id = ITEM::generate_next_id(None);
             if !self.exists(&id).await? {
                 return Ok(id);
             }

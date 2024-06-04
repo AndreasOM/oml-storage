@@ -33,7 +33,7 @@ use color_eyre::eyre::Result;
 #[async_trait]
 pub trait StorageItem: core::fmt::Debug + std::default::Default + std::marker::Sync {
     type ID: ToString
-        + for<'a> From<&'a str>
+        // + for<'a> From<&'a str> -> use make_id
         + Sync
         + Send
         + core::fmt::Debug
@@ -45,5 +45,14 @@ pub trait StorageItem: core::fmt::Debug + std::default::Default + std::marker::S
     fn deserialize(data: &[u8]) -> Result<Self>
     where
         Self: Sized;
-    fn generate_id() -> Self::ID;
+
+    /// Experimental. Might be gone soon, or not.
+    fn generate_next_id(a_previous_id: Option<&Self::ID>) -> Self::ID;
+
+    fn make_id(id: &str) -> Result<Self::ID>;
 }
+/*
+pub trait StorageItemId {
+
+}
+*/

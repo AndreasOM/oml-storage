@@ -51,7 +51,7 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageNull<ITEM> 
         let mut tries = 10;
         loop {
             //let id = nanoid::nanoid!();
-            let id = ITEM::generate_id();
+            let id = ITEM::generate_next_id(None);
             if !self.exists(&id).await? {
                 // NO! self.update_highest_seen_id( &id );
                 return Ok(id);

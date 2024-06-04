@@ -3,10 +3,12 @@
 ## InProgress
 
 
+
 ## ToDo
 
-- [ ] Fix IDs?! -> aka make the type be user definable
+- [ ] Split demo/test into separate crates
 
+- [ ] Consider using error instead of LockResult?!
 
 - [ ] Implement dynamodb backed storage
 	- [ ] #dynamodb_storage Implement exists
@@ -19,6 +21,10 @@
 - [ ] Add `destroy` method to delete items for good (with extra protection)
 
 ## Done
+
+## 2024-06-04
+- [x] Fix IDs?! -> aka make the type be user definable (Needs careful testing)
+	-> Breaks metadata numbers in Strings as IDs!
 
 ## 2024-05-30
 - [ ] Add `metadata`feature

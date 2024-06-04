@@ -2,6 +2,7 @@ use crate::StorageItem;
 use async_trait::async_trait;
 use chrono::DateTime;
 use chrono::Utc;
+use color_eyre::eyre::eyre;
 use color_eyre::eyre::Result;
 use serde::Deserialize;
 use serde::Serialize;
@@ -71,4 +72,13 @@ impl StorageLock {
 pub enum LockResult<ITEM> {
     Success { lock: StorageLock, item: ITEM },
     AlreadyLocked { who: String },
+}
+
+impl<ITEM> LockResult<ITEM> {
+    pub fn success(self) -> Result<(StorageLock, ITEM)> {
+        match self {
+            LockResult::Success { lock, item } => Ok((lock, item)),
+            LockResult::AlreadyLocked { who } => Err(eyre!("Already locked by {who:?}")),
+        }
+    }
 }
