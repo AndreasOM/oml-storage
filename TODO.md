@@ -26,6 +26,8 @@
 ## 2024-06-11
 - [x] DynamoDb: Implement unlocking
 - [x] DynamoDb: Verify lock is correct when writing
+- [x] DynamoDb: Implement `force_unlock`
+- [x] DynamoDb: Implement `exists`
 
 ## 2024-06-04
 - [x] Fix IDs?! -> aka make the type be user definable (Needs careful testing)

@@ -166,8 +166,31 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDynamoDb<IT
             }
         }
     }
-    async fn exists(&self, _id: &ITEM::ID) -> Result<bool> {
-        Ok(false) // :TODO:
+    async fn exists(&self, id: &ITEM::ID) -> Result<bool> {
+        tracing::info!("Checking if {id} exists");
+        let client = self.client().await?;
+        match client
+            .get_item()
+            .table_name(&self.table_name)
+            .key("id", AttributeValue::S(id.to_string()))
+            //.key("id", AttributeValue::S("id_42".to_string()))
+            .send()
+            .await
+        {
+            Ok(o) => {
+                tracing::info!("Check - GetItem {id} success {o:?}");
+                Ok(o.item.is_some())
+                // does not exist
+                // Check - GetItem 1002 success GetItemOutput { item: None, consumed_capacity: None, _request_id: Some("e5429414-ef9d-4554-aeb1-99d902b7c600") }
+                // does exist
+                // Check - GetItem 1002 success GetItemOutput { item: Some({"data": S("{\n  \"counter\": 1,\n  \"data\": \"some data\",\n  \"secret\": null\n}"), "id": S("1002")}), consumed_capacity: None, _request_id: Some("486a63d0-d0a7-402d-9cf0-7be8378897a2") }
+            }
+            Err(e) => {
+                tracing::warn!("Check - GetItem {id} failure {e:?}");
+                Err(eyre!(":TODO:"))
+            }
+        }
+        //Ok(false) // :TODO:
     }
 
     async fn load(&self, _id: &ITEM::ID) -> Result<ITEM> {
@@ -309,8 +332,29 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDynamoDb<IT
         }
     }
 
-    async fn force_unlock(&self, _id: &ITEM::ID) -> Result<()> {
-        todo!();
+    async fn force_unlock(&self, id: &ITEM::ID) -> Result<()> {
+        tracing::info!("Force Unlocking: {id}");
+        let client = self.client().await?;
+        match client
+            .update_item()
+            .table_name(&self.table_name)
+            .key("id", AttributeValue::S(id.to_string()))
+            .update_expression("REMOVE #Lock")
+            .expression_attribute_names("#Lock", "lock")
+            .return_values(ReturnValue::None)
+            .send()
+            .await
+        {
+            Ok(o) => {
+                tracing::info!("Force Unlock - UpdateItem {id} success {o:?}");
+                Ok(())
+            }
+            Err(e) => {
+                tracing::warn!("Force Unlock - UpdateItem {id} failure {e:?}");
+                // :TODO: check
+                Err(eyre!("Lock invalid!"))
+            }
+        }
     }
     async fn verify_lock(&self, _id: &ITEM::ID, _lock: &StorageLock) -> Result<bool> {
         todo!();
