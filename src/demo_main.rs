@@ -187,15 +187,15 @@ async fn main() -> Result<()> {
     {
         tracing::info!("Feature: `metadata` demo");
         let highest_seen_id = storage.metadata_highest_seen_id().await;
-        tracing::info!("Highest seen id: '{highest_seen_id}'");
-        let item2_id = TestItem::generate_next_id(Some(&highest_seen_id));
+        tracing::info!("Highest seen id: '{highest_seen_id:?}'");
+        let item2_id = TestItem::generate_next_id(highest_seen_id.as_ref());
         let item2_id = TestItem::generate_next_id(Some(&item2_id));
         let (lock2, _item2) = storage.lock(&item2_id, "DUMMY").await?.success()?;
         tracing::info!("Item2 lock {lock2:?}");
         storage.unlock(&item2_id, lock2).await?;
         let _ = storage.all_ids().await;
         let highest_seen_id = storage.metadata_highest_seen_id().await;
-        tracing::info!("Highest seen id: '{highest_seen_id}'");
+        tracing::info!("Highest seen id: '{highest_seen_id:?}'");
     }
 
     tracing::info!("Demo ended");

@@ -44,7 +44,7 @@ pub trait Storage<ITEM: StorageItem + Sized>: Send + Sync + std::fmt::Debug {
     async fn display_lock(&self, id: &ITEM::ID) -> Result<String>;
 
     #[cfg(feature = "metadata")]
-    async fn metadata_highest_seen_id(&self) -> ITEM::ID;
+    async fn metadata_highest_seen_id(&self) -> Option<ITEM::ID>;
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]

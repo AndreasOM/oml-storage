@@ -135,7 +135,7 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageNull<ITEM> 
     }
 
     #[cfg(feature = "metadata")]
-    async fn metadata_highest_seen_id(&self) -> ITEM::ID {
+    async fn metadata_highest_seen_id(&self) -> Option<ITEM::ID> {
         if self.warnings_on_use {
             tracing::warn!("StorageNull metadata_highest_seen_id used!");
         }

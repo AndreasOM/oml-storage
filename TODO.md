@@ -2,11 +2,12 @@
 
 ## InProgress
 
+- [ ] Split demo/test into separate crates
 
 
 ## ToDo
 
-- [ ] Split demo/test into separate crates
+- [ ] Add `wipe` feature
 
 - [ ] Consider using error instead of LockResult?!
 
@@ -21,6 +22,10 @@
 - [ ] Add `destroy` method to delete items for good (with extra protection)
 
 ## Done
+
+## 2024-06-11
+- [x] DynamoDb: Implement unlocking
+- [x] DynamoDb: Verify lock is correct when writing
 
 ## 2024-06-04
 - [x] Fix IDs?! -> aka make the type be user definable (Needs careful testing)

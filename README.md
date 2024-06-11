@@ -17,6 +17,14 @@ For Examples check [oml-storage-examples](https://github.com/AndreasOM/oml-stora
 
 ## Breaking Changes
 
+## 0.2.x -> 0.3.x
+
+### metadata_highest_seen_id return Option<ITEM::ID>
+	
+metadata_highest_seen_id returns an Option<ITEM::ID> now,
+which will be None if we haven't seen any Id yet.
+
+
 ## 0.1.x -> 0.2.x
 
 ### Replaced &str ID with ITEM::ID

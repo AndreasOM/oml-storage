@@ -263,7 +263,7 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDisk<ITEM> 
         }
     }
     #[cfg(feature = "metadata")]
-    async fn metadata_highest_seen_id(&self) -> ITEM::ID {
+    async fn metadata_highest_seen_id(&self) -> Option<ITEM::ID> {
         self.metadata.highest_seen_id()
     }
 }

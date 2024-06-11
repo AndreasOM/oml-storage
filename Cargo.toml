@@ -1,6 +1,6 @@
 [package]
 name = "oml-storage"
-version = "0.2.2-dev"
+version = "0.3.0-dev"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -22,13 +22,15 @@ name="oml-storage-demo"
 path="src/demo_main.rs"
 
 [features]
-default = [ "metadata" ]
+default = [ "dynamo-db", "metadata" ]
 metadata = []
+dynamo-db = [ "aws-sdk-dynamodb/rt-tokio", "aws-sdk-dynamodb/rustls" ]
+# dynamo-db = [ ]
 
 [dependencies]
 async-trait = "0.1.77"
 aws-config = { version = "1.1.1", default-features = false }
-aws-sdk-dynamodb = { version = "1.9.0", default-features = false }
+aws-sdk-dynamodb = { version = "1.9.0", default-features = false, features = ["rt-tokio", "rustls"] }
 chrono = { version = "0.4.31", features = ["now", "serde"], default-features = false }
 clap = { version = "4.4.12", features = ["derive", "std"], default-features = false }
 color-eyre = { version = "0.6.2", default-features = false }

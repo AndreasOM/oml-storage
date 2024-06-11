@@ -1,4 +1,5 @@
 use crate::LockResult;
+use crate::Metadata;
 use crate::Storage;
 use crate::StorageItem;
 use crate::StorageLock;
@@ -23,6 +24,8 @@ pub struct StorageDynamoDb<ITEM: StorageItem> {
     table_name: String,
     endpoint_url: Option<String>,
     item_type: PhantomData<ITEM>,
+    #[cfg(feature = "metadata")]
+    metadata: Metadata<ITEM>,
 }
 
 impl<ITEM: StorageItem> StorageDynamoDb<ITEM> {
@@ -31,6 +34,7 @@ impl<ITEM: StorageItem> StorageDynamoDb<ITEM> {
             table_name: String::from(table_name),
             endpoint_url: None,
             item_type: PhantomData,
+            metadata: Metadata::default(),
         }
     }
 
@@ -145,7 +149,7 @@ impl<ITEM: StorageItem> StorageDynamoDb<ITEM> {
 #[async_trait]
 impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDynamoDb<ITEM> {
     async fn ensure_storage_exists(&mut self) -> Result<()> {
-        Ok(())
+        self.ensure_table_exists().await
     }
     async fn create(&self) -> Result<ITEM::ID> {
         let mut tries = 10;
@@ -172,21 +176,25 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDynamoDb<IT
 
     async fn save(&self, id: &ITEM::ID, item: &ITEM, lock: &StorageLock) -> Result<()> {
         tracing::info!("Saving: {id} -> {item:?} with lock {lock:?}");
+        let lock_json = serde_json::to_string_pretty(&lock)?;
         let client = self.client().await?;
         let data = item.serialize()?;
         let data = String::from_utf8_lossy(&data);
         match client
             .update_item()
             .table_name(&self.table_name)
-            //.key("id", AttributeValue::S(String::from(id)))
             .key("id", AttributeValue::S(id.to_string()))
-            //.expression_attribute_names()
-            //.update_expression("SET #Count = if_not_exists(#Count, :zero) + :one, Images = list_append(if_not_exists(Images, :empty), :image)")
             .update_expression("SET #Data = :data")
             .expression_attribute_names("#Data", "data")
             .expression_attribute_values(
                 ":data",
                 aws_sdk_dynamodb::types::AttributeValue::S(data.to_string()),
+            )
+            .condition_expression("#Lock = :lock")
+            .expression_attribute_names("#Lock", "lock")
+            .expression_attribute_values(
+                ":lock",
+                aws_sdk_dynamodb::types::AttributeValue::S(lock_json),
             )
             .return_values(ReturnValue::AllOld)
             .send()
@@ -198,7 +206,8 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDynamoDb<IT
             }
             Err(e) => {
                 tracing::warn!("Save - UpdateItem {id} failure {e:?}");
-                todo!();
+                // :TODO: check if it was actually the lock that failed
+                Err(eyre!("Lock invalid!"))
             }
         }
     }
@@ -222,6 +231,7 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDynamoDb<IT
                 ":lock",
                 aws_sdk_dynamodb::types::AttributeValue::S(lock_json),
             )
+            .condition_expression("attribute_not_exists(#Lock)")
             .return_values(ReturnValue::AllOld)
             .send()
             .await
@@ -261,13 +271,42 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDynamoDb<IT
             }
             Err(e) => {
                 tracing::warn!("Lock - UpdateItem {id} failure {e:?}");
-                todo!();
+                return Ok(LockResult::AlreadyLocked {
+                    who: String::from(":TODO:"),
+                });
             }
         }
     }
 
-    async fn unlock(&self, _id: &ITEM::ID, _lock: StorageLock) -> Result<()> {
-        todo!();
+    async fn unlock(&self, id: &ITEM::ID, lock: StorageLock) -> Result<()> {
+        tracing::info!("Unlocking: {id} with lock {lock:?}");
+        let lock_json = serde_json::to_string_pretty(&lock)?;
+        let client = self.client().await?;
+        match client
+            .update_item()
+            .table_name(&self.table_name)
+            .key("id", AttributeValue::S(id.to_string()))
+            .update_expression("REMOVE #Lock")
+            .expression_attribute_names("#Lock", "lock")
+            .condition_expression("#Lock = :lock")
+            .expression_attribute_values(
+                ":lock",
+                aws_sdk_dynamodb::types::AttributeValue::S(lock_json),
+            )
+            .return_values(ReturnValue::None)
+            .send()
+            .await
+        {
+            Ok(o) => {
+                tracing::info!("Unlock - UpdateItem {id} success {o:?}");
+                Ok(())
+            }
+            Err(e) => {
+                tracing::warn!("Unlock - UpdateItem {id} failure {e:?}");
+                // :TODO: check if it was actually the lock that failed
+                Err(eyre!("Lock invalid!"))
+            }
+        }
     }
 
     async fn force_unlock(&self, _id: &ITEM::ID) -> Result<()> {
@@ -285,8 +324,8 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDynamoDb<IT
         todo!();
     }
     #[cfg(feature = "metadata")]
-    async fn metadata_highest_seen_id(&self) -> ITEM::ID {
-        todo!();
+    async fn metadata_highest_seen_id(&self) -> Option<ITEM::ID> {
+        self.metadata.highest_seen_id()
     }
 }
 
