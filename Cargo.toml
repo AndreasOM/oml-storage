@@ -17,10 +17,6 @@ exclude = [
     ".gitignore",
 ]
 
-[[bin]]
-name="oml-storage-demo"
-path="src/demo_main.rs"
-
 [features]
 default = [ "dynamo-db", "metadata" ]
 metadata = []

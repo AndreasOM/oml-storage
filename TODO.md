@@ -23,6 +23,9 @@
 
 ## Done
 
+## 2024-06-18
+- [x] Removed demo code -> use example from other repository
+
 ## 2024-06-11
 - [x] DynamoDb: Implement unlocking
 - [x] DynamoDb: Verify lock is correct when writing
