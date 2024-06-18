@@ -4,6 +4,10 @@
 
 - [ ] Split demo/test into separate crates
 
+- [ ] #dynamodb_storage to parity with #disk_storage
+	- [ ] verify_lock
+	- [ ] all_ids
+	- [ ] metadata
 
 ## ToDo
 
@@ -25,6 +29,7 @@
 
 ## 2024-06-18
 - [x] Removed demo code -> use example from other repository
+- [x] Implement `display_lock` for #dynamodb_storage
 
 ## 2024-06-11
 - [x] DynamoDb: Implement unlocking

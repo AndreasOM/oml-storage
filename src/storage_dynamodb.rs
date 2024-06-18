@@ -6,6 +6,7 @@ use crate::StorageLock;
 use async_trait::async_trait;
 use aws_sdk_dynamodb::error::SdkError;
 use aws_sdk_dynamodb::operation::describe_table::DescribeTableError::ResourceNotFoundException;
+use aws_sdk_dynamodb::operation::get_item::GetItemOutput;
 use aws_sdk_dynamodb::operation::update_item::UpdateItemOutput;
 use aws_sdk_dynamodb::types::AttributeDefinition;
 use aws_sdk_dynamodb::types::AttributeValue;
@@ -364,8 +365,40 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDynamoDb<IT
         // Ok(Vec::default())
     }
 
-    async fn display_lock(&self, _id: &ITEM::ID) -> Result<String> {
-        todo!();
+    async fn display_lock(&self, id: &ITEM::ID) -> Result<String> {
+        let client = self.client().await?;
+        match client
+            .get_item()
+            .table_name(&self.table_name)
+            .key("id", AttributeValue::S(id.to_string()))
+            .projection_expression("#Lock")
+            .expression_attribute_names("#Lock", "lock")
+            .send()
+            .await
+        {
+            Ok(GetItemOutput { mut item, .. }) => {
+                // tracing::info!("Display Lock - GetItem {id} success {item:?}");
+                if let Some(item) = item.take() {
+                    // locked
+                    let Some(lock_json) = item.get("lock") else {
+                        // not locked
+                        return Ok(String::default());
+                    };
+                    let lock_json = lock_json.as_s().map_err(|e| eyre!(":TODO: {e:?}"))?;
+                    let lock: StorageLock = serde_json::from_str(lock_json)?;
+                    let lock_string = format!("Locked by {} at {:?}", lock.who(), lock.when());
+
+                    Ok(lock_string)
+                } else {
+                    // not locked
+                    Ok(String::default())
+                }
+            }
+            Err(e) => {
+                tracing::warn!("Display Lock  - GetItem {id} failure {e:?}");
+                Err(eyre!(":TODO: {e:?}"))
+            }
+        }
     }
     #[cfg(feature = "metadata")]
     async fn metadata_highest_seen_id(&self) -> Option<ITEM::ID> {
