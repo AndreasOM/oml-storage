@@ -248,6 +248,41 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDisk<ITEM> 
         self.update_highest_seen_id(&highest_id);
         Ok(ids)
     }
+    async fn scan_ids(
+        &self,
+        start: Option<&str>,
+        limit: Option<usize>,
+    ) -> Result<(Vec<ITEM::ID>, Option<String>)> {
+        // :HACK: just scan all and filter after
+        let mut all_ids = self.all_ids().await?;
+
+        let skip_count = if let Some(start) = start {
+            let skip_count = start.parse::<usize>()?;
+            let skip_count = skip_count.min(all_ids.len());
+            all_ids.drain(0..skip_count);
+            skip_count
+        } else {
+            0
+        };
+
+        if let Some(limit) = limit {
+            let limit = limit.min(all_ids.len());
+            all_ids.resize_with(limit, || {
+                /* :TODO: trace? */
+                unimplemented!() /* ITEM::ID::default() */
+            });
+        }
+
+        let scan_pos = skip_count + all_ids.len();
+
+        let scan_pos = if scan_pos <= all_ids.len() {
+            Some(format!("{scan_pos}"))
+        } else {
+            None
+        };
+
+        Ok((all_ids, scan_pos))
+    }
 
     async fn display_lock(&self, id: &ITEM::ID) -> Result<String> {
         let l = self.lock_path(id);

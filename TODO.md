@@ -15,7 +15,7 @@
 
 - [ ] Consider using error instead of LockResult?!
 
-- [ ] Implement dynamodb backed storage
+- [ ] Implement dynamodb backend storage
 	- [ ] #dynamodb_storage Implement exists
 	- [ ] #dynamodb_storage Check existing lock when locking
 
@@ -29,7 +29,8 @@
 
 ## 2024-06-18
 - [x] Removed demo code -> use example from other repository
-- [x] Implement `display_lock` for #dynamodb_storage
+- [x] Implemented `display_lock` for #dynamodb_storage
+- [x] Implemened `scan_ids` for disk and dynamodb
 
 ## 2024-06-11
 - [x] DynamoDb: Implement unlocking

@@ -40,6 +40,14 @@ pub trait Storage<ITEM: StorageItem + Sized>: Send + Sync + std::fmt::Debug {
     /// Returns all ids. This is a :HACK: and we will probably switch to an iterator at some point
     async fn all_ids(&self) -> Result<Vec<ITEM::ID>>;
 
+    async fn scan_ids(
+        &self,
+        _start: Option<&str>,
+        _limit: Option<usize>,
+    ) -> Result<(Vec<ITEM::ID>, Option<String>)> {
+        todo!("Implement scan position for ...");
+    }
+
     /// Returns a human readable version of the current lock status for debugging
     async fn display_lock(&self, id: &ITEM::ID) -> Result<String>;
 

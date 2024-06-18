@@ -7,6 +7,7 @@ use async_trait::async_trait;
 use aws_sdk_dynamodb::error::SdkError;
 use aws_sdk_dynamodb::operation::describe_table::DescribeTableError::ResourceNotFoundException;
 use aws_sdk_dynamodb::operation::get_item::GetItemOutput;
+use aws_sdk_dynamodb::operation::scan::ScanOutput;
 use aws_sdk_dynamodb::operation::update_item::UpdateItemOutput;
 use aws_sdk_dynamodb::types::AttributeDefinition;
 use aws_sdk_dynamodb::types::AttributeValue;
@@ -363,6 +364,68 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDynamoDb<IT
     async fn all_ids(&self) -> Result<Vec<ITEM::ID>> {
         todo!();
         // Ok(Vec::default())
+    }
+    async fn scan_ids(
+        &self,
+        start: Option<&str>,
+        limit: Option<usize>,
+    ) -> Result<(Vec<ITEM::ID>, Option<String>)> {
+        // tracing::info!("Scanning Ids: {start:?} {limit:?}");
+        let client = self.client().await?;
+        let mut scan = client
+            .scan()
+            .table_name(&self.table_name)
+            .projection_expression("#Id")
+            .expression_attribute_names("#Id", "id");
+        if let Some(start) = start {
+            scan = scan.exclusive_start_key("id", AttributeValue::S(start.to_string()));
+        }
+        if let Some(limit) = limit {
+            scan = scan.limit(limit as i32);
+        }
+        match scan.send().await {
+            Ok(ScanOutput {
+                items,
+                last_evaluated_key,
+                ..
+            }) => {
+                // tracing::info!("Scanning Ids - Scan success {items:?} {last_evaluated_key:?}");
+
+                // :TODO: flatten
+                let scan_pos = match last_evaluated_key {
+                    None => None,
+                    Some(k) => {
+                        if let Some(last_id) = k.get("id") {
+                            if let Ok(last_id_s) = last_id.as_s() {
+                                Some(last_id_s.to_string())
+                            } else {
+                                None
+                            }
+                        } else {
+                            None
+                        }
+                    }
+                };
+                // :TODO: map and collect ?
+                let mut ids = Vec::default();
+                if let Some(items) = items {
+                    for item in items {
+                        if let Some(ida) = item.get("id") {
+                            if let Ok(id_s) = ida.as_s() {
+                                let id: ITEM::ID = ITEM::make_id(id_s)?;
+                                ids.push(id);
+                            }
+                        }
+                    }
+                };
+                Ok((ids, scan_pos))
+            }
+            Err(e) => {
+                tracing::warn!("Scanning Ids - Scan failure {e:?}");
+                // :TODO: check
+                Err(eyre!("I don't know what happened ;) {e:?}!"))
+            }
+        }
     }
 
     async fn display_lock(&self, id: &ITEM::ID) -> Result<String> {
