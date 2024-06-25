@@ -75,7 +75,7 @@ impl<ITEM: StorageItem> StorageDisk<ITEM> {
 
 #[cfg(not(feature = "metadata"))]
 impl<ITEM: StorageItem> StorageDisk<ITEM> {
-    fn update_highest_seen_id(&self, _id: &str) {}
+    fn update_highest_seen_id(&self, _id: &ITEM::ID) {}
 }
 
 #[async_trait]

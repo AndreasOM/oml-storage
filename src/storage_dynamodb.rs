@@ -1,4 +1,5 @@
 use crate::LockResult;
+#[cfg(feature = "metadata")]
 use crate::Metadata;
 use crate::Storage;
 use crate::StorageItem;
@@ -30,12 +31,25 @@ pub struct StorageDynamoDb<ITEM: StorageItem> {
     metadata: Metadata<ITEM>,
 }
 
+#[cfg(feature = "metadata")]
+impl<ITEM: StorageItem> StorageDynamoDb<ITEM> {
+    fn update_highest_seen_id(&self, id: &ITEM::ID) {
+        self.metadata.update_highest_seen_id(id);
+    }
+}
+
+#[cfg(not(feature = "metadata"))]
+impl<ITEM: StorageItem> StorageDynamoDb<ITEM> {
+    fn update_highest_seen_id(&self, _id: &ITEM::ID) {}
+}
+
 impl<ITEM: StorageItem> StorageDynamoDb<ITEM> {
     pub async fn new(table_name: &str) -> Self {
         Self {
             table_name: String::from(table_name),
             endpoint_url: None,
             item_type: PhantomData,
+            #[cfg(feature = "metadata")]
             metadata: Metadata::default(),
         }
     }
@@ -175,17 +189,18 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDynamoDb<IT
             .get_item()
             .table_name(&self.table_name)
             .key("id", AttributeValue::S(id.to_string()))
-            //.key("id", AttributeValue::S("id_42".to_string()))
+            .projection_expression("#Id")
+            .expression_attribute_names("#Id", "id")
             .send()
             .await
         {
             Ok(o) => {
                 tracing::info!("Check - GetItem {id} success {o:?}");
-                Ok(o.item.is_some())
-                // does not exist
-                // Check - GetItem 1002 success GetItemOutput { item: None, consumed_capacity: None, _request_id: Some("e5429414-ef9d-4554-aeb1-99d902b7c600") }
-                // does exist
-                // Check - GetItem 1002 success GetItemOutput { item: Some({"data": S("{\n  \"counter\": 1,\n  \"data\": \"some data\",\n  \"secret\": null\n}"), "id": S("1002")}), consumed_capacity: None, _request_id: Some("486a63d0-d0a7-402d-9cf0-7be8378897a2") }
+                let Some(_item) = o.item else {
+                    return Ok(false);
+                };
+                self.update_highest_seen_id(&id);
+                Ok(true)
             }
             Err(e) => {
                 tracing::warn!("Check - GetItem {id} failure {e:?}");
@@ -227,6 +242,7 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDynamoDb<IT
         {
             Ok(o) => {
                 tracing::info!("Save - UpdateItem {id} success {o:?}");
+                self.update_highest_seen_id(&id);
                 Ok(())
             }
             Err(e) => {
@@ -271,6 +287,7 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDynamoDb<IT
                                     AttributeValue::S(data) => {
                                         let item = ITEM::deserialize(data.as_bytes())?;
                                         tracing::info!("Lock - Got item {item:?}");
+                                        self.update_highest_seen_id(&id);
                                         item
                                     }
                                     o => {
@@ -324,6 +341,7 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDynamoDb<IT
         {
             Ok(o) => {
                 tracing::info!("Unlock - UpdateItem {id} success {o:?}");
+                self.update_highest_seen_id(&id);
                 Ok(())
             }
             Err(e) => {
@@ -349,6 +367,7 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDynamoDb<IT
         {
             Ok(o) => {
                 tracing::info!("Force Unlock - UpdateItem {id} success {o:?}");
+                self.update_highest_seen_id(&id);
                 Ok(())
             }
             Err(e) => {
@@ -377,6 +396,7 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDynamoDb<IT
                     return Ok(false);
                 };
                 // tracing::info!("{item:#?}");
+                self.update_highest_seen_id(&id);
                 let Some(lock_json) = item.get("lock") else {
                     // item has no lock so lock can't be valid
                     return Ok(false);
@@ -451,6 +471,7 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDynamoDb<IT
                         if let Some(ida) = item.get("id") {
                             if let Ok(id_s) = ida.as_s() {
                                 let id: ITEM::ID = ITEM::make_id(id_s)?;
+                                // :LATER: self.update_highest_seen_id(&id);
                                 ids.push(id);
                             }
                         }

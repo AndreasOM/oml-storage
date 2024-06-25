@@ -6,7 +6,7 @@
 - [ ] #dynamodb_storage to parity with #disk_storage
 	- [x] verify_lock
 	- [+] all_ids
-	- [ ] metadata
+	- [x] metadata
 
 
 ## ToDo
@@ -33,6 +33,7 @@
 ## 2024-06-25
 - [x] Split demo/test into separate crates
 - [x] Implemented `verify_lock` for #dynamodb_storage
+- [x] Implemented metadata for #dynamodb_storage
 
 ## 2024-06-18
 - [x] Removed demo code -> use example from other repository

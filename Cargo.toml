@@ -19,6 +19,9 @@ exclude = [
 
 [features]
 default = [ "dynamo-db", "metadata" ]
+## future! -- probably for 1.0.0
+## default = [ "dynamo-db" ]
+
 metadata = []
 dynamo-db = [ "aws-sdk-dynamodb/rt-tokio", "aws-sdk-dynamodb/rustls" ]
 # dynamo-db = [ ]

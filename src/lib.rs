@@ -25,4 +25,5 @@ pub use storage_null::StorageNull;
 
 #[cfg(feature = "metadata")]
 mod metadata;
+#[cfg(feature = "metadata")]
 pub(crate) use metadata::Metadata;
