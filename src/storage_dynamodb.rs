@@ -358,8 +358,46 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDynamoDb<IT
             }
         }
     }
-    async fn verify_lock(&self, _id: &ITEM::ID, _lock: &StorageLock) -> Result<bool> {
-        todo!();
+    async fn verify_lock(&self, id: &ITEM::ID, lock: &StorageLock) -> Result<bool> {
+        tracing::info!("Checking if lock {lock:?} is correct for {id}");
+        let client = self.client().await?;
+        match client
+            .get_item()
+            .table_name(&self.table_name)
+            .key("id", AttributeValue::S(id.to_string()))
+            .projection_expression("#Id, #Lock")
+            .expression_attribute_names("#Id", "id")
+            .expression_attribute_names("#Lock", "lock")
+            .send()
+            .await
+        {
+            Ok(o) => {
+                let Some(item) = o.item else {
+                    // item does not exist so lock can't be valid
+                    return Ok(false);
+                };
+                // tracing::info!("{item:#?}");
+                let Some(lock_json) = item.get("lock") else {
+                    // item has no lock so lock can't be valid
+                    return Ok(false);
+                };
+                let Ok(lock_json) = lock_json.as_s() else {
+                    // item lock has wrong type so lock can't be valid
+                    return Ok(false);
+                };
+
+                let Ok(db_lock) = serde_json::from_str::<StorageLock>(lock_json) else {
+                    // item lock has wrong content so lock can't be valid
+                    return Ok(false);
+                };
+
+                Ok(*lock == db_lock)
+            }
+            Err(e) => {
+                tracing::warn!("Check - GetItem {id} failure {e:?}");
+                Err(eyre!(":TODO:"))
+            }
+        }
     }
     async fn all_ids(&self) -> Result<Vec<ITEM::ID>> {
         todo!();

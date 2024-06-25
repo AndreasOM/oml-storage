@@ -2,12 +2,12 @@
 
 ## InProgress
 
-- [ ] Split demo/test into separate crates
 
 - [ ] #dynamodb_storage to parity with #disk_storage
-	- [ ] verify_lock
-	- [ ] all_ids
+	- [x] verify_lock
+	- [+] all_ids
 	- [ ] metadata
+
 
 ## ToDo
 
@@ -25,7 +25,14 @@
 - [ ] Add (streaming) iterator for all ids
 - [ ] Add `destroy` method to delete items for good (with extra protection)
 
+- [ ] Add scanning with real pagination support
+- [ ] Add specific error types
+
 ## Done
+
+## 2024-06-25
+- [x] Split demo/test into separate crates
+- [x] Implemented `verify_lock` for #dynamodb_storage
 
 ## 2024-06-18
 - [x] Removed demo code -> use example from other repository
