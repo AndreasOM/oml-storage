@@ -882,7 +882,7 @@ dependencies = [
 
 [[package]]
 name = "oml-storage"
-version = "0.3.3-dev"
+version = "0.3.3-alpha"
 dependencies = [
  "async-trait",
  "aws-config",
