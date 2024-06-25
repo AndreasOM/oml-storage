@@ -301,6 +301,34 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDisk<ITEM> 
     async fn metadata_highest_seen_id(&self) -> Option<ITEM::ID> {
         self.metadata.highest_seen_id()
     }
+
+    #[cfg(feature = "wipe")]
+    async fn wipe(&self, confirmation: &str) -> Result<()> {
+        if confirmation != "Yes, I know what I am doing!" {
+            tracing::error!("Please confirm you know what you are doing");
+            return Err(eyre!("Unconfirmed wipe attempt"));
+        }
+
+        let _sem = self.lock_semaphore.acquire().await?;
+
+        // we know all_ids doesn't use the semaphore
+        let ids = self.all_ids().await?;
+
+        tracing::warn!("Wiping {} items.", ids.len());
+        for id in ids {
+            let l = self.lock_path(&id);
+            if fs::metadata(&l).is_ok() {
+                let _ =
+                    std::fs::remove_file(l.clone()).map_err(|e| eyre!("Can't remove {l:?}: {e:?}"));
+            }
+            let f = self.file_path(&id);
+            if fs::metadata(&f).is_ok() {
+                let _ =
+                    std::fs::remove_file(f.clone()).map_err(|e| eyre!("Can't remove {f:?}: {e:?}"));
+            }
+        }
+        Ok(())
+    }
 }
 
 #[cfg(test)]

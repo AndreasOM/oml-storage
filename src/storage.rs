@@ -53,6 +53,9 @@ pub trait Storage<ITEM: StorageItem + Sized>: Send + Sync + std::fmt::Debug {
 
     #[cfg(feature = "metadata")]
     async fn metadata_highest_seen_id(&self) -> Option<ITEM::ID>;
+
+    #[cfg(feature = "wipe")]
+    async fn wipe(&self, confirmation: &str) -> Result<()>;
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]

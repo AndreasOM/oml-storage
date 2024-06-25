@@ -3,21 +3,9 @@
 ## InProgress
 
 
-- [ ] #dynamodb_storage to parity with #disk_storage
-	- [x] verify_lock
-	- [+] all_ids
-	- [x] metadata
-
-
 ## ToDo
 
-- [ ] Add `wipe` feature
-
 - [ ] Consider using error instead of LockResult?!
-
-- [ ] Implement dynamodb backend storage
-	- [ ] #dynamodb_storage Implement exists
-	- [ ] #dynamodb_storage Check existing lock when locking
 
 - [ ] #disk_storage Check if base path exists
 - [ ] #disk_storage Improve error handling
@@ -34,6 +22,8 @@
 - [x] Split demo/test into separate crates
 - [x] Implemented `verify_lock` for #dynamodb_storage
 - [x] Implemented metadata for #dynamodb_storage
+- [x] #dynamodb_storage to parity with #disk_storage
+- [x] Add `wipe` feature
 
 ## 2024-06-18
 - [x] Removed demo code -> use example from other repository

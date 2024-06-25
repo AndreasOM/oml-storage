@@ -141,6 +141,15 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageNull<ITEM> 
         }
         self.metadata.highest_seen_id()
     }
+
+    #[cfg(feature = "wipe")]
+    async fn wipe(&self, _confirmation: &str) -> Result<()> {
+        if self.warnings_on_use {
+            tracing::warn!("StorageNull wipe used!");
+        }
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]

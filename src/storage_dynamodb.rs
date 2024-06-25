@@ -526,6 +526,50 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDynamoDb<IT
     async fn metadata_highest_seen_id(&self) -> Option<ITEM::ID> {
         self.metadata.highest_seen_id()
     }
+
+    #[cfg(feature = "wipe")]
+    async fn wipe(&self, confirmation: &str) -> Result<()> {
+        if confirmation != "Yes, I know what I am doing!" {
+            tracing::error!("Please confirm you know what you are doing");
+            return Err(eyre!("Unconfirmed wipe attempt"));
+        }
+
+        let mut count = 0;
+        let mut scan_pos: Option<String> = None;
+        loop {
+            let (ids, new_scan_pos) = self.scan_ids(scan_pos.as_deref(), Some(3)).await?;
+            scan_pos = new_scan_pos;
+
+            for id in ids {
+                tracing::info!("Deleting {id}");
+                let client = self.client().await?;
+                match client
+                    .delete_item()
+                    .table_name(&self.table_name)
+                    .key("id", AttributeValue::S(id.to_string()))
+                    .return_values(ReturnValue::None)
+                    .send()
+                    .await
+                {
+                    Ok(o) => {
+                        tracing::info!("Deleting - UpdateItem {id} success {o:?}");
+                        self.update_highest_seen_id(&id);
+                        count += 1;
+                    }
+                    Err(e) => {
+                        tracing::warn!("Deleting - UpdateItem {id} failure {e:?}");
+                    }
+                }
+            }
+
+            if scan_pos.is_none() {
+                break;
+            }
+        }
+
+        tracing::warn!("Deleted {count} items");
+        Ok(())
+    }
 }
 
 #[cfg(test)]

@@ -1,6 +1,6 @@
 [package]
 name = "oml-storage"
-version = "0.3.4-dev"
+version = "0.4.0-dev"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -19,9 +19,11 @@ exclude = [
 
 [features]
 default = [ "dynamo-db", "metadata" ]
+# default = [ "dynamo-db", "metadata", "wipe" ]
 ## future! -- probably for 1.0.0
 ## default = [ "dynamo-db" ]
 
+wipe = [] # only use for testing!
 metadata = []
 dynamo-db = [ "aws-sdk-dynamodb/rt-tokio", "aws-sdk-dynamodb/rustls" ]
 # dynamo-db = [ ]
