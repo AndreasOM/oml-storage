@@ -10,6 +10,7 @@
 
 mod storage;
 pub use storage::LockResult;
+pub use storage::LockNewResult;
 pub use storage::Storage;
 pub use storage::StorageLock;
 

@@ -14,6 +14,16 @@ so it _should_ be *good enough*.
 ## Examples
 For Examples check [oml-storage-examples](https://github.com/AndreasOM/oml-storage-examples).
 
+## Future
+
+- [ ] Considering merging this and the examples into a single workspace.
+- [ ] Considering adding an explicit StorageItemId trait, and include some default implementations.
+
+## Changes
+
+### 0.4.1
+- Added lock_new, which will return AlreadyExists if the item already exists.
+    - Only implemented for DiskStorage for now.
 
 ## Breaking Changes
 

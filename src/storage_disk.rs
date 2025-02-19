@@ -1,3 +1,4 @@
+use crate::storage::LockNewResult;
 use crate::LockResult;
 #[cfg(feature = "metadata")]
 use crate::Metadata;
@@ -150,7 +151,7 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDisk<ITEM> 
             tracing::debug!("Lock[{who}]: Does {l:?} exist");
 
             if fs::metadata(&l).is_ok() {
-                tracing::warn!("Lockfile {l:?} already exists");
+                tracing::warn!("lock: Lockfile {l:?} already exists");
                 drop(sem);
                 tracing::debug!("Lock[{who}]: Dropped Semaphore"); // close enough
                                                                    //return Err(eyre!("Already locked"));
@@ -177,6 +178,67 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDisk<ITEM> 
         };
         self.update_highest_seen_id(&id);
         Ok(LockResult::Success { lock, item })
+    }
+
+    async fn lock_new(&self, id: &ITEM::ID, who: &str) -> Result<LockNewResult<ITEM>> {
+        let l = self.lock_path(id);
+        let (lock, item) = {
+            let sem = self.lock_semaphore.acquire().await?;
+            tracing::debug!("Lock[{who}]: Got Semaphore");
+
+            if self.exists(id).await? {
+                tracing::warn!("lock_new: Item {id:?} already exists");
+                drop(sem);
+                tracing::debug!("Lock[{who}]: Dropped Semaphore"); // close enough
+                return Ok(LockNewResult::AlreadyExists);
+            }
+
+            tracing::debug!("Lock[{who}]: Does {l:?} exist");
+
+            if fs::metadata(&l).is_ok() {
+                tracing::warn!("lock_new: Lockfile {l:?} already exists");
+                drop(sem);
+                tracing::debug!("Lock[{who}]: Dropped Semaphore"); // close enough
+                                                                   //return Err(eyre!("Already locked"));
+                                                                   // :TODO: load lock
+                self.update_highest_seen_id(&id);
+                return Ok(LockNewResult::AlreadyLocked {
+                    who: String::from(":TODO:"),
+                });
+            }
+
+            let lock = StorageLock::new(who);
+            let lock_json = serde_json::to_string_pretty(&lock)?;
+
+            tracing::debug!("Lock[{who}]: Write lock to {l:?}");
+            fs::write(l.clone(), lock_json)
+                .map_err(|e| eyre!("Can't lock {l:?} for {who}: {e:?}"))?;
+
+            tracing::debug!("Lock[{who}]: Load {id}");
+            let item_path = self.file_path(id);
+            tracing::debug!("{item_path:?}");
+    
+            if fs::metadata(item_path).is_ok() {
+                tracing::warn!("lock_new: Item {id:?} already exists -- after creating lock");
+                self.unlock(id, lock).await.inspect_err(|e| {
+                    tracing::error!("Can't unlock {id}: {e:?}");
+                })?;
+                drop(sem);
+                tracing::debug!("Lock[{who}]: Dropped Semaphore"); // close enough
+                return Ok(LockNewResult::AlreadyExists);
+            }
+    
+            tracing::debug!("Lock[{who}]: Dropped Semaphore"); // close enough
+            let item = ITEM::default();
+            self.save(id, &item, &lock).await.inspect_err(|e| {
+                tracing::error!("Failed saving new item {id}: {e:?}");
+            })?;
+            // :TODO: could probably be done earlier
+            drop(sem);
+            (lock, item)
+        };
+        self.update_highest_seen_id(&id);
+        Ok(LockNewResult::Success { lock, item })
     }
 
     async fn unlock(&self, id: &ITEM::ID, lock: StorageLock) -> Result<()> {

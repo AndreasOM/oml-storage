@@ -1,3 +1,4 @@
+use crate::storage::LockNewResult;
 use crate::LockResult;
 /// This is a *Null* implementation that does nothing.
 /// It can be used as a default, and can warn when actually being used.
@@ -99,6 +100,21 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageNull<ITEM> 
             (lock, item)
         };
         Ok(LockResult::Success { lock, item })
+    }
+
+    async fn lock_new(&self, id: &ITEM::ID, who: &str) -> Result<LockNewResult<ITEM>> {
+        if self.warnings_on_use {
+            tracing::warn!("StorageNull lock_new used!");
+        }
+        let (lock, item) = {
+            let lock = StorageLock::new(who);
+
+            tracing::debug!("Lock[{who}]: Load {id}");
+            let item = self.load(id).await.unwrap_or_default();
+
+            (lock, item)
+        };
+        Ok(LockNewResult::Success { lock, item })
     }
 
     async fn unlock(&self, _id: &ITEM::ID, _lock: StorageLock) -> Result<()> {

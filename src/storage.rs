@@ -31,6 +31,8 @@ pub trait Storage<ITEM: StorageItem + Sized>: Send + Sync + std::fmt::Debug {
 
     /// Tries to lock an (existing or new) item
     async fn lock(&self, id: &ITEM::ID, who: &str) -> Result<LockResult<ITEM>>;
+    /// Tries to lock a new item, fails if it already exists
+    async fn lock_new(&self, id: &ITEM::ID, who: &str) -> Result<LockNewResult<ITEM>>;
     async fn unlock(&self, id: &ITEM::ID, lock: StorageLock) -> Result<()>;
 
     async fn force_unlock(&self, id: &ITEM::ID) -> Result<()>;
@@ -90,6 +92,23 @@ impl<ITEM> LockResult<ITEM> {
         match self {
             LockResult::Success { lock, item } => Ok((lock, item)),
             LockResult::AlreadyLocked { who } => Err(eyre!("Already locked by {who:?}")),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum LockNewResult<ITEM> {
+    Success { lock: StorageLock, item: ITEM },
+    AlreadyLocked { who: String },
+    AlreadyExists,
+}
+
+impl<ITEM> LockNewResult<ITEM> {
+    pub fn success(self) -> Result<(StorageLock, ITEM)> {
+        match self {
+            LockNewResult::Success { lock, item } => Ok((lock, item)),
+            LockNewResult::AlreadyLocked { who } => Err(eyre!("Already locked by {who:?}")),
+            LockNewResult::AlreadyExists => Err(eyre!("Already exists")),
         }
     }
 }

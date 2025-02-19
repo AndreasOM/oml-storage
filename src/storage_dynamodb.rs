@@ -1,3 +1,4 @@
+use crate::storage::LockNewResult;
 use crate::LockResult;
 #[cfg(feature = "metadata")]
 use crate::Metadata;
@@ -318,6 +319,10 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDynamoDb<IT
                 });
             }
         }
+    }
+
+    async fn lock_new(&self, _id: &ITEM::ID, _who: &str) -> Result<LockNewResult<ITEM>> {
+        todo!("lock_new is not implemented for DynamoDB");
     }
 
     async fn unlock(&self, id: &ITEM::ID, lock: StorageLock) -> Result<()> {
