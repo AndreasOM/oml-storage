@@ -217,7 +217,7 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDisk<ITEM> 
             tracing::debug!("Lock[{who}]: Load {id}");
             let item_path = self.file_path(id);
             tracing::debug!("{item_path:?}");
-    
+
             if fs::metadata(item_path).is_ok() {
                 tracing::warn!("lock_new: Item {id:?} already exists -- after creating lock");
                 self.unlock(id, lock).await.inspect_err(|e| {
@@ -227,7 +227,7 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDisk<ITEM> 
                 tracing::debug!("Lock[{who}]: Dropped Semaphore"); // close enough
                 return Ok(LockNewResult::AlreadyExists);
             }
-    
+
             tracing::debug!("Lock[{who}]: Dropped Semaphore"); // close enough
             let item = ITEM::default();
             self.save(id, &item, &lock).await.inspect_err(|e| {

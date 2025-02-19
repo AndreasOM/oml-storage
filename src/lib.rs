@@ -9,8 +9,8 @@
 //! The documentation is still work-in-progress.
 
 mod storage;
-pub use storage::LockResult;
 pub use storage::LockNewResult;
+pub use storage::LockResult;
 pub use storage::Storage;
 pub use storage::StorageLock;
 
