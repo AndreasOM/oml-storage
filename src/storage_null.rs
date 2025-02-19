@@ -181,11 +181,20 @@ mod tests {
     struct TestItem {}
 
     impl StorageItem for TestItem {
+        type ID = String;
+
         fn serialize(&self) -> Result<Vec<u8>> {
             todo!()
         }
         fn deserialize(_: &[u8]) -> Result<Self> {
             todo!()
+        }
+        fn generate_next_id(a_previous_id: Option<&Self::ID>) -> Self::ID {
+            todo!()
+        }
+        fn make_id(id: &str) -> Result<Self::ID> {
+            let id = id.parse::<Self::ID>()?;
+            Ok(id)
         }
     }
 

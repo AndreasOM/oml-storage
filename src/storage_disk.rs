@@ -409,6 +409,8 @@ mod tests {
     struct TestItem {}
 
     impl StorageItem for TestItem {
+        type ID = String;
+
         fn serialize(&self) -> Result<Vec<u8>> {
             let json = serde_json::to_string_pretty(&self)?;
 
@@ -421,6 +423,13 @@ mod tests {
             let i = serde_json::from_slice(&data)?;
 
             Ok(i)
+        }
+        fn generate_next_id(_a_previous_id: Option<&Self::ID>) -> Self::ID {
+            nanoid::nanoid!()
+        }
+        fn make_id(id: &str) -> Result<Self::ID> {
+            let id = id.parse::<Self::ID>()?;
+            Ok(id)
         }
     }
 
