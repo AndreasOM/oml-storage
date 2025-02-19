@@ -27,6 +27,7 @@ impl<ITEM: StorageItem> Metadata<ITEM> {
                 _ => *id > **highest_seen_id,
             };
             */
+            tracing::debug!("update_highest_seen_id: '{id}' >? '{highest_seen_id:?}'");
             higher
         } else {
             true

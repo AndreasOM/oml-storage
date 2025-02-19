@@ -106,7 +106,7 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDisk<ITEM> 
         tracing::debug!("{p:?}");
 
         if fs::metadata(p).is_ok() {
-            self.update_highest_seen_id(&id);
+            self.update_highest_seen_id(id);
             Ok(true)
         } else {
             // the lockfile already exists, but the data file doesn't
@@ -114,7 +114,7 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDisk<ITEM> 
             // or is in the middle of creation
             let p = self.lock_path(id);
             if fs::metadata(p).is_ok() {
-                self.update_highest_seen_id(&id);
+                self.update_highest_seen_id(id);
                 Ok(true)
             } else {
                 Ok(false)
@@ -126,7 +126,7 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDisk<ITEM> 
         let p = self.file_path(id);
         let b = fs::read(p.clone()).map_err(|e| eyre!("Can't load from {p:?} -> {e}"))?;
         let i = ITEM::deserialize(&b)?;
-        self.update_highest_seen_id(&id);
+        self.update_highest_seen_id(id);
 
         Ok(i)
     }
@@ -138,7 +138,7 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDisk<ITEM> 
             let p = self.file_path(id);
             let b = item.serialize()?;
             fs::write(p.clone(), b).map_err(|e| eyre!("Can't save to {p:?}: {e:?}"))?;
-            self.update_highest_seen_id(&id);
+            self.update_highest_seen_id(id);
             Ok(())
         }
     }
@@ -156,7 +156,7 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDisk<ITEM> 
                 tracing::debug!("Lock[{who}]: Dropped Semaphore"); // close enough
                                                                    //return Err(eyre!("Already locked"));
                                                                    // :TODO: load lock
-                self.update_highest_seen_id(&id);
+                self.update_highest_seen_id(id);
                 return Ok(LockResult::AlreadyLocked {
                     who: String::from(":TODO:"),
                 });
@@ -176,7 +176,7 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDisk<ITEM> 
             tracing::debug!("Lock[{who}]: Dropped Semaphore"); // close enough
             (lock, item)
         };
-        self.update_highest_seen_id(&id);
+        self.update_highest_seen_id(id);
         Ok(LockResult::Success { lock, item })
     }
 
@@ -201,7 +201,7 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDisk<ITEM> 
                 tracing::debug!("Lock[{who}]: Dropped Semaphore"); // close enough
                                                                    //return Err(eyre!("Already locked"));
                                                                    // :TODO: load lock
-                self.update_highest_seen_id(&id);
+                self.update_highest_seen_id(id);
                 return Ok(LockNewResult::AlreadyLocked {
                     who: String::from(":TODO:"),
                 });
@@ -237,7 +237,7 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDisk<ITEM> 
             drop(sem);
             (lock, item)
         };
-        self.update_highest_seen_id(&id);
+        self.update_highest_seen_id(id);
         Ok(LockNewResult::Success { lock, item })
     }
 
@@ -253,7 +253,7 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDisk<ITEM> 
 
     async fn force_unlock(&self, id: &ITEM::ID) -> Result<()> {
         let l = self.lock_path(id);
-        if !fs::metadata(&l).is_ok() {
+        if fs::metadata(&l).is_err() {
             tracing::warn!("Lockfile {l:?} doesn't exists");
             return Err(eyre!("Not locked"));
         }
@@ -263,7 +263,7 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDisk<ITEM> 
     }
     async fn verify_lock(&self, id: &ITEM::ID, lock: &StorageLock) -> Result<bool> {
         let l = self.lock_path(id);
-        if !fs::metadata(&l).is_ok() {
+        if fs::metadata(&l).is_err() {
             tracing::warn!("Lockfile {l:?} doesn't exists");
             return Ok(false);
         }
@@ -348,7 +348,7 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDisk<ITEM> 
 
     async fn display_lock(&self, id: &ITEM::ID) -> Result<String> {
         let l = self.lock_path(id);
-        if !fs::metadata(&l).is_ok() {
+        if fs::metadata(&l).is_err() {
             return Ok(String::default());
         } else {
             let lock_json = fs::read(&l)?;

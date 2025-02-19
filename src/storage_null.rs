@@ -1,7 +1,7 @@
-use crate::storage::LockNewResult;
-use crate::LockResult;
 /// This is a *Null* implementation that does nothing.
 /// It can be used as a default, and can warn when actually being used.
+use crate::storage::LockNewResult;
+use crate::LockResult;
 
 #[cfg(feature = "metadata")]
 use crate::Metadata;
@@ -76,7 +76,7 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageNull<ITEM> 
             tracing::warn!("StorageNull load used!");
         }
         let i = ITEM::default();
-        self.update_highest_seen_id(&id);
+        self.update_highest_seen_id(id);
 
         Ok(i)
     }

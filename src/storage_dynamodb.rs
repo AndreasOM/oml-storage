@@ -200,7 +200,7 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDynamoDb<IT
                 let Some(_item) = o.item else {
                     return Ok(false);
                 };
-                self.update_highest_seen_id(&id);
+                self.update_highest_seen_id(id);
                 Ok(true)
             }
             Err(e) => {
@@ -243,7 +243,7 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDynamoDb<IT
         {
             Ok(o) => {
                 tracing::info!("Save - UpdateItem {id} success {o:?}");
-                self.update_highest_seen_id(&id);
+                self.update_highest_seen_id(id);
                 Ok(())
             }
             Err(e) => {
@@ -288,7 +288,7 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDynamoDb<IT
                                     AttributeValue::S(data) => {
                                         let item = ITEM::deserialize(data.as_bytes())?;
                                         tracing::info!("Lock - Got item {item:?}");
-                                        self.update_highest_seen_id(&id);
+                                        self.update_highest_seen_id(id);
                                         item
                                     }
                                     o => {
@@ -346,7 +346,7 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDynamoDb<IT
         {
             Ok(o) => {
                 tracing::info!("Unlock - UpdateItem {id} success {o:?}");
-                self.update_highest_seen_id(&id);
+                self.update_highest_seen_id(id);
                 Ok(())
             }
             Err(e) => {
@@ -372,7 +372,7 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDynamoDb<IT
         {
             Ok(o) => {
                 tracing::info!("Force Unlock - UpdateItem {id} success {o:?}");
-                self.update_highest_seen_id(&id);
+                self.update_highest_seen_id(id);
                 Ok(())
             }
             Err(e) => {
@@ -401,7 +401,7 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDynamoDb<IT
                     return Ok(false);
                 };
                 // tracing::info!("{item:#?}");
-                self.update_highest_seen_id(&id);
+                self.update_highest_seen_id(id);
                 let Some(lock_json) = item.get("lock") else {
                     // item has no lock so lock can't be valid
                     return Ok(false);
