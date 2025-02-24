@@ -17,6 +17,16 @@ pub use storage::StorageLock;
 mod storage_item;
 pub use storage_item::StorageItem;
 
+mod storage_id;
+
+// New storage ID types
+pub use storage_id::StorageId;
+
+// ID implementations
+pub use storage_id::RandomId;
+pub use storage_id::SequentialId;
+pub use storage_id::ExternalId;
+
 mod storage_disk;
 pub use storage_disk::StorageDisk;
 mod storage_dynamodb;
@@ -28,3 +38,6 @@ pub use storage_null::StorageNull;
 mod metadata;
 #[cfg(feature = "metadata")]
 pub(crate) use metadata::Metadata;
+
+#[cfg(test)]
+mod storage_id_test;
