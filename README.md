@@ -21,11 +21,19 @@ For Examples check [oml-storage-examples](https://github.com/AndreasOM/oml-stora
 
 ## Changes
 
+### 0.5.0
+- Added StorageId trait, and some implementations.
+    - Refer to [STORAGE_ID_MIGRATION.md](STORAGE_ID_MIGRATION.md) for more information.
+
 ### 0.4.1
 - Added lock_new, which will return AlreadyExists if the item already exists.
     - Only implemented for DiskStorage for now.
 
 ## Breaking Changes
+
+## -> 0.5.0
+
+- [ ] Added StorageId trait!
 
 ## 0.2.x -> 0.3.x
 
