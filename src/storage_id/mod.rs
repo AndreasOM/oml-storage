@@ -37,7 +37,9 @@ pub trait StorageId:
 mod external_id;
 mod random_id;
 mod sequential_id;
+mod simple_external_id;
 
 pub use external_id::ExternalId;
 pub use random_id::RandomId;
 pub use sequential_id::SequentialId;
+pub use simple_external_id::SimpleExternalId;
