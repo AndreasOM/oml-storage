@@ -1,12 +1,12 @@
 use crate::StorageId;
 use color_eyre::eyre::Result;
 use std::fmt;
-
+use serde::{Serialize, Deserialize};
 /// A nanoid-based random identifier
 ///
 /// This ID type generates random, unique strings using the nanoid library.
 /// It's suitable for distributed systems where coordination is difficult.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Default, Serialize, Deserialize)]
 pub struct RandomId(String);
 
 impl RandomId {

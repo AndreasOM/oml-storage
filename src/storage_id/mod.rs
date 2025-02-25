@@ -1,8 +1,9 @@
 use color_eyre::eyre::Result;
 use std::fmt::{Debug, Display};
-
+use serde::de::DeserializeOwned;
+use serde::Serialize;
 /// Trait for storage item identifiers
-pub trait StorageId: ToString + Sync + Send + Debug + Display + PartialOrd + Clone + Default {
+pub trait StorageId: ToString + Sync + Send + Debug + Display + PartialOrd + Clone + Default + Serialize + DeserializeOwned {
     /// Create an ID from its string representation
     fn from_string(s: &str) -> Result<Self> where Self: Sized;
     

@@ -189,7 +189,7 @@ mod tests {
         fn deserialize(_: &[u8]) -> Result<Self> {
             todo!()
         }
-        fn generate_next_id(a_previous_id: Option<&Self::ID>) -> Self::ID {
+        fn generate_next_id(_a_previous_id: Option<&Self::ID>) -> Self::ID {
             todo!()
         }
         fn make_id(id: &str) -> Result<Self::ID> {

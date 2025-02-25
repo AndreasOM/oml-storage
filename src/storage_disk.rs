@@ -541,7 +541,7 @@ mod tests {
 
         let item_id = nanoid::nanoid!();
 
-        let (lock, item) = match storage.lock(&item_id, &us).await? {
+        let (lock, _item) = match storage.lock(&item_id, &us).await? {
             LockResult::Success { lock, item } => (lock, item),
             LockResult::AlreadyLocked { .. } => {
                 todo!();
@@ -550,7 +550,7 @@ mod tests {
         let exists_during_creation = storage.exists(&item_id).await?;
 
         // storage.save(&item_id, &item, &lock).await?;
-        let l = storage.display_lock(&item_id).await?;
+        let _l = storage.display_lock(&item_id).await?;
         // println!("{l:?}");
         storage.unlock(&item_id, lock).await?;
         // let l = storage.display_lock(&item_id).await?;
