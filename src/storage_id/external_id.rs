@@ -2,12 +2,13 @@ use crate::StorageId;
 use color_eyre::eyre::{eyre, Result};
 use serde::{Deserialize, Serialize};
 use std::fmt;
+use std::hash::Hash;
 /// An identifier for external systems with a prefix
 ///
 /// This ID type is useful for wrapping external IDs (e.g., from social platforms)
 /// with a prefix to identify the source system.
 /// Format: "prefix:actual-id"
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Hash)]
 pub struct ExternalId {
     prefix: String,
     id: String,

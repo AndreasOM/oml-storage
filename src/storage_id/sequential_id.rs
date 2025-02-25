@@ -2,12 +2,13 @@ use crate::StorageId;
 use color_eyre::eyre::{eyre, Result};
 use serde::{Deserialize, Serialize};
 use std::fmt;
+use std::hash::Hash;
 use std::str::FromStr;
 /// A sequential numeric identifier
 ///
 /// This ID type represents incremental numbers.
 /// It's suitable for systems that need human-readable, ordered IDs.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Default, Serialize, Deserialize, Hash)]
 pub struct SequentialId(u64);
 
 impl SequentialId {

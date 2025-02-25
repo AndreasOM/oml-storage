@@ -6,7 +6,7 @@ use std::fmt;
 ///
 /// This ID type generates random, unique strings using the nanoid library.
 /// It's suitable for distributed systems where coordination is difficult.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Default, Serialize, Deserialize, Hash)]
 pub struct RandomId(String);
 
 impl RandomId {

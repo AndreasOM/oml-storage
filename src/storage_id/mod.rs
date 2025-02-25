@@ -2,6 +2,7 @@ use color_eyre::eyre::Result;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use std::fmt::{Debug, Display};
+use std::hash::Hash;
 /// Trait for storage item identifiers
 pub trait StorageId:
     ToString
@@ -14,6 +15,8 @@ pub trait StorageId:
     + Default
     + Serialize
     + DeserializeOwned
+    + Hash
+    + std::cmp::Eq
 {
     /// Create an ID from its string representation
     fn from_string(s: &str) -> Result<Self>
