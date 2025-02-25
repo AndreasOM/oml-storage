@@ -87,4 +87,30 @@ mod tests {
 
         Ok(())
     }
+
+    #[test]
+    fn test_simple_external_id() -> Result<()> {
+        // Create an external ID
+        let id1 = SimpleExternalId::new("12344321");
+        println!("Simple External ID: {}", id1);
+
+        // Create from string
+        let id_str = id1.to_string();
+        let id2 = SimpleExternalId::from_string(&id_str)?;
+
+        // Verify they're equal
+        assert_eq!(id1, id2);
+
+        // Test ID getter
+        assert_eq!(id1.id(), "12344321");
+
+        // Format validation
+        assert!(SimpleExternalId::is_valid_format("12344321"));
+        assert!(!SimpleExternalId::is_valid_format(""));
+
+        // Invalid format should fail parsing
+        assert!(SimpleExternalId::from_string("").is_err());
+
+        Ok(())
+    }
 }

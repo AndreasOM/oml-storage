@@ -26,6 +26,7 @@ pub use storage_id::StorageId;
 pub use storage_id::ExternalId;
 pub use storage_id::RandomId;
 pub use storage_id::SequentialId;
+pub use storage_id::SimpleExternalId;
 
 mod storage_disk;
 pub use storage_disk::StorageDisk;
