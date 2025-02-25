@@ -23,9 +23,9 @@ mod storage_id;
 pub use storage_id::StorageId;
 
 // ID implementations
+pub use storage_id::ExternalId;
 pub use storage_id::RandomId;
 pub use storage_id::SequentialId;
-pub use storage_id::ExternalId;
 
 mod storage_disk;
 pub use storage_disk::StorageDisk;

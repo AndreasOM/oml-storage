@@ -1,7 +1,7 @@
 use crate::StorageId;
 use color_eyre::eyre::{eyre, Result};
+use serde::{Deserialize, Serialize};
 use std::fmt;
-use serde::{Serialize, Deserialize};
 /// An identifier for external systems with a prefix
 ///
 /// This ID type is useful for wrapping external IDs (e.g., from social platforms)
@@ -21,12 +21,12 @@ impl ExternalId {
             id: id.to_string(),
         }
     }
-    
+
     /// Get the prefix (source system)
     pub fn prefix(&self) -> &str {
         &self.prefix
     }
-    
+
     /// Get the ID part
     pub fn id(&self) -> &str {
         &self.id
@@ -46,7 +46,9 @@ impl StorageId for ExternalId {
     fn from_string(s: &str) -> Result<Self> {
         if let Some((prefix, id)) = s.split_once(':') {
             if prefix.is_empty() || id.is_empty() {
-                return Err(eyre!("Invalid external ID: prefix and ID must not be empty"));
+                return Err(eyre!(
+                    "Invalid external ID: prefix and ID must not be empty"
+                ));
             }
             Ok(Self {
                 prefix: prefix.to_string(),
@@ -56,13 +58,13 @@ impl StorageId for ExternalId {
             Err(eyre!("Invalid external ID format: must be 'prefix:id'"))
         }
     }
-    
+
     fn generate_new(_previous: Option<&Self>) -> Self {
         // External IDs are typically provided by external systems,
         // so we just return a placeholder. This should rarely be used.
         Self::default()
     }
-    
+
     fn is_valid_format(s: &str) -> bool {
         if let Some((prefix, id)) = s.split_once(':') {
             !prefix.is_empty() && !id.is_empty()

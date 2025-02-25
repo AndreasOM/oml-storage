@@ -1,8 +1,8 @@
 use crate::StorageId;
 use color_eyre::eyre::{eyre, Result};
+use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::str::FromStr;
-use serde::{Serialize, Deserialize};
 /// A sequential numeric identifier
 ///
 /// This ID type represents incremental numbers.
@@ -15,7 +15,7 @@ impl SequentialId {
     pub fn new(value: u64) -> Self {
         Self(value)
     }
-    
+
     /// Get the inner numeric value
     pub fn value(&self) -> u64 {
         self.0
@@ -29,14 +29,14 @@ impl StorageId for SequentialId {
             Err(e) => Err(eyre!("Invalid sequential ID format: {}", e)),
         }
     }
-    
+
     fn generate_new(previous: Option<&Self>) -> Self {
         match previous {
             Some(prev) => Self(prev.0 + 1),
             None => Self(1), // Start from 1 if no previous ID
         }
     }
-    
+
     fn is_valid_format(s: &str) -> bool {
         s.parse::<u64>().is_ok()
     }
@@ -47,4 +47,3 @@ impl fmt::Display for SequentialId {
         write!(f, "{}", self.0)
     }
 }
-
