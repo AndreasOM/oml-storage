@@ -155,10 +155,12 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDisk<ITEM> 
                 drop(sem);
                 tracing::debug!("Lock[{who}]: Dropped Semaphore"); // close enough
                                                                    //return Err(eyre!("Already locked"));
-                                                                   // :TODO: load lock
+                                                                   // Read the lock file to get the owner
+                let lock_content = fs::read(&l)?;
+                let existing_lock: StorageLock = serde_json::from_slice(&lock_content)?;
                 self.update_highest_seen_id(id);
                 return Ok(LockResult::AlreadyLocked {
-                    who: String::from(":TODO:"),
+                    who: existing_lock.who().to_string(),
                 });
             }
 
@@ -200,10 +202,12 @@ impl<ITEM: StorageItem + std::marker::Send> Storage<ITEM> for StorageDisk<ITEM> 
                 drop(sem);
                 tracing::debug!("Lock[{who}]: Dropped Semaphore"); // close enough
                                                                    //return Err(eyre!("Already locked"));
-                                                                   // :TODO: load lock
+                                                                   // Read the lock file to get the owner
+                let lock_content = fs::read(&l)?;
+                let existing_lock: StorageLock = serde_json::from_slice(&lock_content)?;
                 self.update_highest_seen_id(id);
                 return Ok(LockNewResult::AlreadyLocked {
-                    who: String::from(":TODO:"),
+                    who: existing_lock.who().to_string(),
                 });
             }
 
